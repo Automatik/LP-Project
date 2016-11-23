@@ -151,25 +151,37 @@ list_var(m( _, _, [v(_, Vs) | Zs ]),  [Vs | Ys] ) :-
 
 %%% polyplus(Poly1, Poly2, Result)
 
-polyplus([], []).
-polyplus([m(C1, T, [V | Vs])], [m(C1, T, [V | Vs])]).
-polyplus([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [Vs]) | Ys]) :-
+polyplus(X, Y) :-
+	is_list(X),
+	monomials(X, X1),
+	polyplus_sorted(X1 ,Y).
+
+polyplus_sorted([], []).
+polyplus_sorted([m(C1, T, [V | Vs])], [m(C1, T, [V | Vs])]).
+polyplus_sorted([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]) :-
 	C3 is C1+C2,
-	polyplus([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
-polyplus([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
+	polyplus_sorted([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
+polyplus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
 	(Vs\=Vs1;V\=V1),
-	polyplus([m(C2, T1, [V1 | Vs1]) | Xs], Ys).
+	polyplus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys).
 
 %%% polyminus(Poly1, Poly2, Result)
 
-polyminus([], []).
-polyminus([m(C1, T, [V | Vs])], [m(C1, T, [V | Vs])]).
-polyminus([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [Vs]) | Ys]) :-
+polyminus(X, Y) :-
+	is_list(X),
+	monomials(X, X1),
+	polyminus_sorted(X1 ,Y).
+
+polyminus_sorted([], []).
+polyminus_sorted([m(C1, T, [V | Vs])], [m(C1, T, [V | Vs])]).
+polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]) :-
 	C3 is C1-C2,
-	polyminus([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
-polyminus([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
+	polyminus_sorted([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
+polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
 	(Vs\=Vs1;V\=V1),
-	polyminus([m(C2, T1, [V1 | Vs1]) | Xs], Ys).
+	polyminus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys).
+
+
 
 
 
