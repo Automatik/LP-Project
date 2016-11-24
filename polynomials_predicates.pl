@@ -181,6 +181,49 @@ polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V 
 	(Vs\=Vs1;V\=V1),
 	polyminus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys).
 
+as_monomial(S, X) :-
+	atom_codes(S, X1),
+	parse_monomial(X1, X),
+	list_power([X], Y),
+	sum_power(Y, Y1),
+	add_power(Y1, X).
+
+add_power([Y1], m(_, Y1, _)).
+
+parse_monomial([], m(_, _, [])).
+
+parse_monomial([X | Xs], m(X1, T, [V | Vs])) :-
+	X > 48,
+	X < 58,
+	number_chars(X1, [X]),
+	parse_monomial(Xs, m(X1, T, [V | Vs])).
+
+parse_monomial([X | Xs], m(X2, T, [V | Vs])) :-
+	X > 48,
+	X < 58,
+	number_chars(X1, [X]),
+	K is (X2*10)+X1,
+	parse_monomial(Xs, m(K, T, [V | Vs])).
+
+parse_monomial([X | Xs], m(C, T, [V | Vs])) :-
+	X = 42,
+	parse_monomial(Xs, m(C, T, [V | Vs])).
+
+parse_monomial([X, Y, Z | Xs], m(C, T, [v(Z1, X1) | Vs])) :-
+	X > 96,
+	X < 123,
+	Y = 94,
+	Z > 48,
+	Z < 58,
+	atom_codes(X1, [X]),
+	number_chars(Z1, [Z]),
+	parse_monomial(Xs, m(C, T, Vs)).
+
+parse_monomial([X | Xs], m(C, T, [v(1, X1) | Vs])) :-
+	X > 96,
+	X < 123,
+	atom_codes(X1, [X]),
+	parse_monomial(Xs, m(C, T, Vs)).
 
 
 
