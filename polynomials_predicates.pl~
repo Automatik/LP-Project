@@ -190,8 +190,7 @@ as_monomial(E, m(C, 1, v(1, V))) :-
 	E = C*V,
 	number(C),
 	atom(V).
-%Per esponente negativo scrivere x^(-2)
-as_monomial(E, m(1, Exp, v(Exp, B))) :-
+as_monomial(E, m(1, Exp, v(Exp, B))) :-  %Per esponente negativo scrivere x^(-2)
 	E = B^Exp.
 as_monomial(E, m(C, _, [v(Exp, V)])) :-
 	as_monomial(E, m(C, _, v(Exp, V))).
