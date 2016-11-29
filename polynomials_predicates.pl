@@ -227,17 +227,19 @@ as_monomial(E, m(C, Exp, VPs)) :-
 
 
 %Solo monomio
-as_polynomial(E, poly(M)) :-
+as_polynomial(E, poly([M])) :-
 	as_monomial(E, M).
-as_polynomial(E, poly([M| Ms])) :-
+as_polynomial(E, poly(Monomials)) :-
 	E = M1+M2,
 	as_polynomial(M2, poly(M)),
-	as_polynomial(M1, poly(Ms)).
-as_polynomial(E, poly([M| Ms])) :-
+	as_polynomial(M1, poly(Ms)),
+        append(M, Ms, Monomials).
+as_polynomial(E, poly(Monomials)) :-
 	E = M1-M2,
 	M3 is -M2,
 	as_polynomial(M3, poly(M)),
-	as_polynomial(M1, poly(Ms)).
+	as_polynomial(M1, poly(Ms)),
+	append(M, Ms, Monomials).
 
 
 
