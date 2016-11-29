@@ -151,9 +151,66 @@ list_var(m( _, _, [v(_, Vs) | Zs ]),  [Vs | Ys] ) :-
 
 %%% polyplus(Poly1, Poly2, Result)
 %%	DEVE ACCETTARE SIA IN FORMA poly(Monomials) CHE IN FORMA DI
-%	ESPRESSIONE
+%ESPRESSIONE
 
+%In caso siano espressioni
+polyplus(Poly1, Poly2, Result) :-
+	as_polynomial(Poly1, P1),
+	as_polynomial(Poly2, P2),
+	polyplus(P1, P2, Result).
+polyplus(Poly1, Poly2, poly(Result)) :-
+	monomials(Poly1, Ms1),
+	monomials(Poly2, Ms2),
+	append(Ms1, Ms2, Ms),
+	dividi(Ms, SML),
+	sumLists(SML, poly(Result)). %magari riordinare i monomi prima di ritornarli
 
+%Ms lista di monomi ordinati
+dividi(Ms, SimilarMonomialsList) :-
+	is_list(Ms),
+	accDividi(Ms, [], SimilarMonomialsList).
+accDividi([], [], []).
+accDividi([], L, L) :- is_list(L).
+% Caso in cui M(il monomio) non è membro di una lista dei monomi simili,
+% viene aggiunto
+accDividi([M| Ms], Xs, L) :-
+	not(presente(M, Xs, _)),
+	append(Xs, [[M]], Ys),
+	accDividi(Ms, Ys, L).
+%Caso in cui M é già membro della lista, viene aggiunto
+accDividi([M| Ms], Xs, L) :-
+	presente(M, Xs, SubList),
+	append(SubList, [M], NewSubList),
+	delete(Xs, SubList, Ys),
+	append(Ys, [NewSubList], Zs),
+	accDividi(Ms, Zs, L).
+
+% presente(monomio, lista monomi simili, in quale sublist se è presente)
+presente(_, [], []) :- fail.
+presente(m(_, TD1, VP1), [SL| _], SL) :-
+	SL = [m(_, TD2, VP2)| _],
+	TD1=TD2,
+	VP1=VP2.
+presente(M, [_| SLs], WhichSL) :-
+	is_list(SLs),
+	presente(M, SLs, WhichSL).
+
+%Somma le liste di monomi simili interne alla lista
+sumLists(SimilarMonomialsList, SummedMonomialsList) :-
+	is_list(SimilarMonomialsList),
+	accSumLists(SimilarMonomialsList, [], SummedMonomialsList).
+accSumLists([], [], []).
+accSumLists([], L, L) :- is_list(L).
+accSumLists([SubList| SLs], Xs, SML) :-
+	sumMonomials(SubList, SummedSL),
+	append(Xs, [SummedSL], Ys),
+	accSumLists(SLs, Ys, SML).
+
+sumMonomials([], m(0, _, _)).
+sumMonomials([m(C1, TD, VP)| Ms], MonomialResult) :-
+	sumMonomials(Ms, m(C2, TD, VP)),
+	C3 is C1+C2,
+	MonomialResult = m(C3, TD, VP).
 
 % polyplus(poly([m(C1, TD, VP1)| MS1]), poly([m(C2, TD, VP2)| MS2]), poly([m(C3, TD, VP3)| MS3])) :-
 %	C3 is C1+C2
@@ -240,6 +297,10 @@ as_polynomial(E, poly(Monomials)) :-
 	as_polynomial(M3, poly(M)),
 	as_polynomial(M1, poly(Ms)),
 	append(M, Ms, Monomials).
+
+reverse(List, RevL) :- accRev(List, [], RevL).
+accRev([], Acc, Acc).
+accRev([H| T], Acc, RevL) :- accRev(T, [H|Acc], RevL).
 
 
 
