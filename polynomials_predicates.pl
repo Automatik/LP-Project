@@ -150,8 +150,15 @@ list_var(m( _, _, [v(_, Vs) | Zs ]),  [Vs | Ys] ) :-
 	list_var(m( _, _, Zs), Ys).
 
 %%% polyplus(Poly1, Poly2, Result)
+%%	DEVE ACCETTARE SIA IN FORMA poly(Monomials) CHE IN FORMA DI
+%	ESPRESSIONE
 
-polyplus(X, Y) :-
+
+
+% polyplus(poly([m(C1, TD, VP1)| MS1]), poly([m(C2, TD, VP2)| MS2]), poly([m(C3, TD, VP3)| MS3])) :-
+%	C3 is C1+C2
+
+/*polyplus(X, Y) :-
 	is_list(X),
 	monomials(X, X1),
 	polyplus_sorted(X1 ,Y).
@@ -163,12 +170,12 @@ polyplus_sorted([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs
 	polyplus_sorted([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
 polyplus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
 	(Vs\=Vs1;V\=V1),
-	polyplus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys).
+	polyplus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys). */
 
 %%% polyminus(Poly1, Poly2, Result)
 
-polyminus(X, Y) :-
-	is_list(X),
+/*polyminus(X, Y) :-
+        is_list(X),
 	monomials(X, X1),
 	polyminus_sorted(X1 ,Y).
 
@@ -179,33 +186,43 @@ polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [V | V
 	polyminus_sorted([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
 polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
 	(Vs\=Vs1;V\=V1),
-	polyminus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys).
+	polyminus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys). */
 
 
 as_monomial(E, m(E, 0, [])) :-
 	number(E).
-as_monomial(E, m(1, 1, v(1, E))) :-
+/*as_monomial(E, m(E, 0, [])) :-
+	compound(E),
+	functor(E, Fun, N),
+	atom(Fun),
+	arg(N, E, V),
+	number(V).*/
+as_monomial(E, m(1, 1, [v(1, E)])) :-
 	atom(E).
-as_monomial(E, m(C, 1, v(1, V))) :-
+as_monomial(E, m(C, 1, [v(1, V)])) :-
 	E = C*V,
 	number(C),
 	atom(V).
 %Per esponente negativo scrivere x^(-2)
-as_monomial(E, m(1, Exp, v(Exp, B))) :-
+as_monomial(E, m(1, Exp, [v(Exp, B)])) :-
 	E = B^Exp.
-as_monomial(E, m(C, _, [v(Exp, V)])) :-
-	as_monomial(E, m(C, _, v(Exp, V))).
-as_monomial(E, m(C, Exp, [v(Exp1, V)| T])) :-
+as_monomial(E, m(C, Exp, VPs)) :-
 	E = V1*V2,
-	as_monomial(V2, m(1, Exp1, v(Exp1, V))),
-	as_monomial(V1, m(C, Exp2, T)),
-	Exp is Exp1+Exp2.
-as_monomial(E, m(C, Exp, [v(-Exp1, V)| T])) :-
+	as_monomial(V2, m(1, Exp1, VP1)),
+	as_monomial(V1, m(C, Exp2, VP2)),
+	Exp is Exp1+Exp2,
+        append(VP1, VP2, VPs).
+as_monomial(E, m(C, Exp, VPs)) :-
+	E = V1/V2,
+	as_monomial(V2, m(1, Exp1, VP1)),
+	as_monomial(V1, m(C, Exp2, VP2)),
+	Exp is Exp2-Exp1,
+	append(VP1, VP2, VPs).
+/*as_monomial(E, m(C, Exp, [v(-Exp1, V)| T])) :-
 	E = V1/V2,
 	as_monomial(V2, m(1, Exp1, v(Exp1, V))),
 	as_monomial(V1, m(C, Exp2, T)),
-	%Exp1Neg is -Exp1,
-	Exp is Exp2-Exp1.
+	Exp is Exp2-Exp1.*/
 
 
 
@@ -221,8 +238,6 @@ as_polynomial(E, poly([M| Ms])) :-
 	M3 is -M2,
 	as_polynomial(M3, poly(M)),
 	as_polynomial(M1, poly(Ms)).
-
-%as_polynomial(E, poly([m(_C, _TD, _VPS)| Ms])).
 
 
 
