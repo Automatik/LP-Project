@@ -330,6 +330,92 @@ reverse(List, RevL) :- accRev(List, [], RevL).
 accRev([], Acc, Acc).
 accRev([H| T], Acc, RevL) :- accRev(T, [H|Acc], RevL).
 
+pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
+	C\=[],
+	C\=0,
+	C>0,
+	C\=1,
+	N\=1,
+	write(+),
+	write(C*V^N),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
+	C\=[],
+	C\=0,
+	C<0,
+	N\=1,
+	write(C*V^N),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
+	C\=[],
+	C\=0,
+	C=1,
+	N\=1,
+	write(+),
+	write(V^N),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
+	C\=[],
+	C\=0,
+	C>0,
+	C\=1,
+	write(+),
+	write(C*V),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
+	C\=[],
+	C\=0,
+	C<0,
+	write(C*V),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
+	C\=[],
+	C\=0,
+	C=1,
+	write(+),
+	write(V),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m(C, _, [_ | _]) | Ps])) :-
+	C=0,
+	pprint_polynomial(poly(Ps)).
+
+
+pprint_polynomial(poly([m([], _, [v(N, V) | Vs]) | Ps])) :-
+	Vs\=[],
+	N\=1,
+	write(*),
+	write(V^N),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m([], _, [v(N, V)]) | Ps])) :-
+	N\=1,
+	write(*),
+	write(V^N),
+	pprint_polynomial(poly(Ps)).
+
+pprint_polynomial(poly([m([], _, [v(1, V) | Vs]) | Ps])) :-
+	Vs\=[],
+	write(*),
+	write(V),
+	pprint_polynomial(poly([m([], _, Vs) | Ps])).
+
+pprint_polynomial(poly([m([], _, [v(1, V)]) | Ps])) :-
+	write(*),
+	write(V),
+	pprint_polynomial(poly(Ps)).
+
+pprint_polynomial(poly([m([], _, []) | Ps])) :-
+		pprint_polynomial(poly(Ps)).
+
+pprint_polynomial(poly([])) :-
+	fail.
+
 
 
 /*as_monomial(S, X) :-
