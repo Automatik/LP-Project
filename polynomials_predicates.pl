@@ -80,7 +80,7 @@ sum_power([X | Xs], [X | Ys]) :-
 	sum_power(Xs, Ys).
 
 monomials([], []).
-monomials(X, Y) :-
+monomials(poly(X), poly(Y)) :-
 	list_power(X, X1),
 	sum_power(X1, X2),
 	ordina_monomi(X , M),
