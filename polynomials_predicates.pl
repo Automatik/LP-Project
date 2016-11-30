@@ -165,6 +165,19 @@ polyplus(Poly1, Poly2, poly(Result)) :-
 	dividi(Ms, SML),
 	sumLists(SML, poly(Result)). %magari riordinare i monomi prima di ritornarli
 
+%polyminus, fare Poly1+(-Poly2)
+polyminus(Poly1, Poly2, Result) :-
+	as_polynomial(Poly1, P1),
+	as_polynomial(Poly2, P2),
+	polyminus(P1, P2, Result).
+polyminus(Poly1, Poly2, poly(Result)) :-
+	monomials(Poly1, Ms1),
+	monomials(Poly2, Ms2),
+	negateMonomials(Ms2, NegMs2),
+	append(Ms1, NegMs2, Ms),
+	dividi(Ms, SML),
+	sumLists(SML, poly(Result)).
+
 %Ms lista di monomi ordinati
 dividi(Ms, SimilarMonomialsList) :-
 	is_list(Ms),
@@ -211,6 +224,21 @@ sumMonomials([m(C1, TD, VP)| Ms], MonomialResult) :-
 	sumMonomials(Ms, m(C2, TD, VP)),
 	C3 is C1+C2,
 	MonomialResult = m(C3, TD, VP).
+
+%Data una lista di monomi, li nega tutti
+negateMonomials(Monomials, NegMonomials) :-
+	is_list(Monomials),
+	accNegateMonomials(Monomials, [], NegMonomials).
+accNegateMonomials([], [], []).
+accNegateMonomials([], L, L) :- is_list(L).
+accNegateMonomials([m(C, TD, VP)| Ms], Xs, NegMs) :-
+	C1 is -C,
+	append(Xs, [m(C1, TD, VP)], Ys),
+	accNegateMonomials(Ms, Ys, NegMs).
+
+%Metodo più corto, manca caso base
+/*negateMonomials([m(C, TD, VP)| Xs], [m(-C, TD, VP)| Ys]) :-
+	negateMonomials(Xs, Ys). */
 
 % polyplus(poly([m(C1, TD, VP1)| MS1]), poly([m(C2, TD, VP2)| MS2]), poly([m(C3, TD, VP3)| MS3])) :-
 %	C3 is C1+C2
