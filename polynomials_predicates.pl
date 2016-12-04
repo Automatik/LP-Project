@@ -178,6 +178,74 @@ polyminus(Poly1, Poly2, poly(Result)) :-
 	dividi(Ms, SML),
 	sumLists(SML, poly(Result)).
 
+polytimes(Poly1, Poly2, Result) :-
+	as_polynomial(Poly1, P1),
+	as_polynomial(Poly2, P2),
+	polytimes(P1, P2, Result).
+polytimes(Poly1, Poly2, poly(Result)) :-
+	is_polynomial(Poly1),
+	is_polynomial(Poly2),
+	multiplicatePolynomials(Poly1, Poly2, MML),
+	monomials(poly(MML), Ms),
+	dividi(Ms, SML),
+	sumLists(SML, poly(Result)).
+
+multiplicatePolynomials(poly(Ms1), poly(Ms2), MML) :-
+	is_list(Ms1),
+	is_list(Ms2),
+	accMultiplicatePolynomials(Ms1, Ms2, MML).
+accMultiplicatePolynomials([], [], []).
+accMultiplicatePolynomials(_, [], []).
+%accMultiplicatePolynomials(_, [], L, L) :- is_list(L).
+accMultiplicatePolynomials([X| Xs], [Y| Ys], [Z| Zs]) :-
+	multiplicateMonomials([X| Xs], Y, Z),
+	accMultiplicatePolynomials([X| Xs], Ys, Zs).
+
+multiplicateMonomials([], _, []).
+multiplicateMonomials([m(C1, TD1, VP1)| Xs], m(C2, TD2, VP2), [m(C, TD, VP)| Zs]) :-
+	C is C1*C2,
+	TD is TD1+TD2,
+	sumVariables(VP1, VP2, VP),
+	multiplicateMonomials(Xs, m(C2, TD2, VP2), Zs).
+
+sumVariables([], [], []).
+sumVariables([], VPs, VPs) :- is_list(VPs).
+sumVariables(VPs, [], VPs) :- is_list(VPs).
+sumVariables(v(P, V), Ys, [SingleVariable| Zs]) :-
+	extractVariable(v(_, V), Ys, Vs2),
+	delete([Ys], v(_, V), Zs),
+	append([v(P, V)], Vs2, Vs),
+	sumPowers(Vs, SingleVariable).
+sumVariables(Xs, v(P, V), [SingleVariable| Zs]) :-
+	extractVariable(v(_, V), Xs, Vs1),
+	delete([Xs], v(_, V), Zs),
+	append([v(P, V)], Vs1, Vs),
+	sumPowers(Vs, SingleVariable).
+
+sumVariables([v(P, V)| Xs], Ys, [SingleVariable| Zs]) :-
+	extractVariable(v(_, V), [v(P, V)| Xs], Vs1),
+	extractVariable(v(_, V), Ys, Vs2),
+	delete(Xs, v(_, V), Xs2),
+	delete(Ys, v(_, V), Ys2),
+	append(Vs1, Vs2, Vs),
+	sumPowers(Vs, SingleVariable),
+	sumVariables(Xs2, Ys2, Zs).
+
+extractVariable(v(_, _), [], []).
+extractVariable(v(_, V), v(P, V), [v(P, V)]).
+extractVariable(v(_, V), v(_, X), []) :- X \= V.
+extractVariable(v(_, V), [v(P, V)| Xs], [v(P, V)| Vs]) :-
+	extractVariable(v(_, V), Xs, Vs).
+extractVariable(v(_, V), [v(_, X)| Xs], Vs) :-
+	X \= V,
+	extractVariable(v(_, V), Xs, Vs).
+
+sumPowers([], v(0, _)).
+sumPowers([v(P1, V)| Vs], v(P, V)) :-
+	sumPowers(Vs, v(P2, V)),
+	P is P1+P2.
+
+
 %Ms lista di monomi ordinati
 dividi(Ms, SimilarMonomialsList) :-
 	is_list(Ms),
