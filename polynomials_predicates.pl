@@ -84,7 +84,31 @@ monomials(poly(X), poly(Y)) :-
 	list_power(X, X1),
 	sum_power(X1, X2),
 	ordina_monomi(X , M),
-	mergesort(X2, _, M, Y).
+	mergesort(X2, _, M, X3),
+	ordina_stesso_grado(X3, Y).
+
+ordina_stesso_grado(Ms, L) :-
+	mindegree(Ms, MinG),
+	maxdegree(Ms, MaxG),
+	metodo(Ms, MinG, MaxG, [], L).
+
+metodo(_, G1, G, L, L) :-
+	is_list(L),
+	G1 is G+1.
+
+metodo(Ms, G, MaxG, ListaProvv, List) :-
+	estrai_monomi(Ms, G, Xs),
+	sort(3, @=<, Xs, Ys),
+	append(ListaProvv, Ys, Zs),
+	G1 is G+1,
+	metodo(Ms, G1, MaxG, Zs, List).
+
+estrai_monomi([], _, []).
+estrai_monomi([m(_, TD, _) | Ms], G, Xs) :-
+	TD \= G,
+	estrai_monomi(Ms, G, Xs).
+estrai_monomi([m(C, G, VP) | Ms], G, [m(C, G, VP) | Xs]) :-
+	estrai_monomi(Ms, G, Xs).
 
 mergesort([], [], [], []).
 mergesort([A], [A], [A1], [A1]).
@@ -352,8 +376,10 @@ as_monomial(E, m(E, 0, [])) :-
 	number(V).*/
 as_monomial(E, m(1, 1, [v(1, E)])) :-
 	atom(E).
+as_monomial(-E, m(-1, 1, [v(1, E)])) :-
+	atom(E).
 as_monomial(E, m(C, 1, [v(1, V)])) :-
-	E = C*V,
+	(E = C*V; E = V*C),
 	number(C),
 	atom(V).
 %Per esponente negativo scrivere x^(-2)
@@ -371,11 +397,12 @@ as_monomial(E, m(C, Exp, VPs)) :-
 	as_monomial(V1, m(C, Exp2, VP2)),
 	Exp is Exp2-Exp1,
 	append(VP1, VP2, VPs).
-/*as_monomial(E, m(C, Exp, [v(-Exp1, V)| T])) :-
-	E = V1/V2,
-	as_monomial(V2, m(1, Exp1, v(Exp1, V))),
-	as_monomial(V1, m(C, Exp2, T)),
-	Exp is Exp2-Exp1.*/
+as_monomial(E, m(-C, Exp, VPs)) :-
+	E = -(V1*V2),
+	as_monomial(V2, m(1, Exp1, VP1)),
+	as_monomial(V1, m(C, Exp2, VP2)),
+	Exp is Exp2+Exp1,
+	append(VP1, VP2, VPs).
 
 
 
@@ -389,8 +416,7 @@ as_polynomial(E, poly(Monomials)) :-
         append(M, Ms, Monomials).
 as_polynomial(E, poly(Monomials)) :-
 	E = M1-M2,
-	M3 is -M2,
-	as_polynomial(M3, poly(M)),
+	as_polynomial(-M2, poly(M)),
 	as_polynomial(M1, poly(Ms)),
 	append(M, Ms, Monomials).
 
