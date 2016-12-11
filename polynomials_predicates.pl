@@ -98,7 +98,8 @@ metodo(_, G1, G, L, L) :-
 
 metodo(Ms, G, MaxG, ListaProvv, List) :-
 	estrai_monomi(Ms, G, Xs),
-	sort(3, @=<, Xs, Ys),
+	sort(3, @=<, Xs, Ys1),
+	sort([3, 1, 2], @=<, Ys1, Ys),
 	append(ListaProvv, Ys, Zs),
 	G1 is G+1,
 	metodo(Ms, G1, MaxG, Zs, List).
