@@ -115,7 +115,6 @@ monomials(poly(X), poly(Y)) :-
 ordina_stesso_grado(Ms, L) :-
 	mindegree(Ms, MinG),
 	maxdegree(Ms, MaxG),
-<<<<<<< HEAD
 	confronta(Ms, MinG, MaxG, [], L).
 
 confronta(_, G1, G, L, L) :-
@@ -130,31 +129,10 @@ confronta(Ms, G, MaxG, ListaProvv, List) :-
 	confronta(Ms, G1, MaxG, Zs, List).
 
 estrai_monomi([], _, []).
-estrai_monomi([m(_, TD, _)| Ms], G, Xs) :-
-	TD \= G,
-	estrai_monomi(Ms, G, Xs).
-estrai_monomi([m(C, G, VP)| Ms], G, [m(C, G, VP)| Xs]) :-
-=======
-	metodo(Ms, MinG, MaxG, [], L).
-
-metodo(_, G1, G, L, L) :-
-	is_list(L),
-	G1 is G+1.
-
-metodo(Ms, G, MaxG, ListaProvv, List) :-
-	estrai_monomi(Ms, G, Xs),
-	sort(3, @=<, Xs, Ys1),
-	sort([3, 1, 2], @=<, Ys1, Ys),
-	append(ListaProvv, Ys, Zs),
-	G1 is G+1,
-	metodo(Ms, G1, MaxG, Zs, List).
-
-estrai_monomi([], _, []).
 estrai_monomi([m(_, TD, _) | Ms], G, Xs) :-
 	TD \= G,
 	estrai_monomi(Ms, G, Xs).
 estrai_monomi([m(C, G, VP) | Ms], G, [m(C, G, VP) | Xs]) :-
->>>>>>> bfda72ea78408d28d2ddfe70d1788942fa307562
 	estrai_monomi(Ms, G, Xs).
 
 mergesort([], [], [], []).
@@ -494,10 +472,6 @@ as_monomial(E, m(-C, Exp, VPs)) :-
 	as_monomial(V1, m(C, Exp2, VP2)),
 	Exp is Exp2+Exp1,
 	append(VP1, VP2, VPs).
-<<<<<<< HEAD
-=======
-
->>>>>>> bfda72ea78408d28d2ddfe70d1788942fa307562
 
 
 %Solo monomio
