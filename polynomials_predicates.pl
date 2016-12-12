@@ -15,18 +15,21 @@ variables(m(_, _, v(Power, VarSymbol)), VarSymbol) :-
 variables([m(_, _, v(Power, VarSymbol))| Xs], [VarSymbol| Ys]) :-
 	is_varpower(v(Power, VarSymbol)),
 	variables(Xs, Ys).
-variables([m(_,_, [v(Power, VarSymbol) | Vs]) | Xs], [[VarSymbol | Zs] | Ys] ) :-
+variables([m(_,_, [v(Power, VarSymbol) | Vs])| Xs], [VarSymbol| Ys] ) :-
 	is_varpower(v(Power, VarSymbol)),
-	variables([m(_, _, Vs) | Xs], [Zs | Ys]).
-variables([m(_,_, []) | Xs], [[] | Ys] ) :-
+	variables([m(_, _, Vs) | Xs], Ys).
+variables([m(_,_, []) | Xs], Ys ) :-
 	variables(Xs , Ys).
+variables(poly(Ms), VarsOrdered) :-
+	variables(Ms, Vars),
+	sort(Vars, VarsOrdered).
 
 
 %%%	is_monomial(m(Coefficient, TotalDegree, VarsPowers))
 is_monomial(m(_C, TD, VPs)) :-
 	integer(TD),
 	TD >= 0,
-	is_list(VPs).
+	is_list(VPs).  %E quando il monomio ha solo una variabile?
 
 %%%	is_varpower(v(Power, VarSymbol))
 is_varpower(v(Power, VarSymbol)) :-
@@ -45,6 +48,28 @@ list_degrees([], []).
 list_degrees([m(C, Degree, V)| Ms], [Degree| Ds]) :-
 	is_monomial(m(C, Degree, V)),
 	list_degrees(Ms, Ds).
+
+max(List, Max) :-
+	List = [H| _],
+	accMax(List, H, Max).
+accMax([], Max, Max).
+accMax([H| T], Acc, Max) :-
+	H > Acc,
+	accMax(T, H, Max).
+accMax([H| T], Acc, Max) :-
+	H =< Acc,
+	accMax(T, Acc, Max).
+
+min(List, Min) :-
+	List = [H| _],
+	accMin(List, H, Min).
+accMin([], Min, Min).
+accMin([H| T], Acc, Min) :-
+	H < Acc,
+	accMin(T, H, Min).
+accMin([H| T], Acc, Min) :-
+	H >= Acc,
+	accMin(T, Acc, Min).
 
 
 %%%	is_polynomial(poly(Monomials))
@@ -84,7 +109,31 @@ monomials(poly(X), poly(Y)) :-
 	list_power(X, X1),
 	sum_power(X1, X2),
 	ordina_monomi(X , M),
-	mergesort(X2, _, M, Y).
+	mergesort(X2, _, M, X3),
+	ordina_stesso_grado(X3, Y).
+
+ordina_stesso_grado(Ms, L) :-
+	mindegree(Ms, MinG),
+	maxdegree(Ms, MaxG),
+	confronta(Ms, MinG, MaxG, [], L).
+
+confronta(_, G1, G, L, L) :-
+	is_list(L),
+	G1 is G+1.
+confronta(Ms, G, MaxG, ListaProvv, List) :-
+	estrai_monomi(Ms, G, Xs),
+	sort(3, @=<, Xs, Ys),
+	sort([3, 1, 2], @=<, Ys, Ys1),
+	append(ListaProvv, Ys1, Zs),
+	G1 is G+1,
+	confronta(Ms, G1, MaxG, Zs, List).
+
+estrai_monomi([], _, []).
+estrai_monomi([m(_, TD, _)| Ms], G, Xs) :-
+	TD \= G,
+	estrai_monomi(Ms, G, Xs).
+estrai_monomi([m(C, G, VP)| Ms], G, [m(C, G, VP)| Xs]) :-
+	estrai_monomi(Ms, G, Xs).
 
 mergesort([], [], [], []).
 mergesort([A], [A], [A1], [A1]).
@@ -341,6 +390,50 @@ polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V 
 	(Vs\=Vs1;V\=V1),
 	polyminus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys). */
 
+is_number_list([]).
+is_number_list([N| Ns]) :-
+	arithmetic_expression_value(N, Value),
+	number(Value),
+	is_number_list(Ns).
+
+indexOf([E| _], E, 0) :- !.
+indexOf([_| T], E, Index) :-
+	indexOf(T, E, Index1),
+	!,
+	Index is Index1+1.
+
+polyval(Poly, VariableValues, Value) :-
+	as_polynomial(Poly, P),
+	polyval(P, VariableValues, Value).
+polyval(poly(Ms), VariableValues, Value) :-
+	variables(poly(Ms), Vars),
+	is_number_list(VariableValues),
+	sostituisci(Ms, Vars, VariableValues, Xs),
+	calcola(Xs, Value).
+
+sostituisci([], _, _, []).
+sostituisci([m(C, TD, VP)| Ms], Vars, VariableValues, [m(C, TD, VPs)| Xs]) :-
+	cambia(VP, Vars, VariableValues, VPs),
+	sostituisci(Ms, Vars, VariableValues, Xs).
+
+cambia([], _, _, []).
+cambia([v(C, V)| Vs], Vars, VariableValues, [v(C, Value)| Xs]) :-
+	indexOf(Vars, V, Index),
+	nth0(Index, VariableValues, Value),
+	cambia(Vs, Vars, VariableValues, Xs).
+
+calcola([], 0).
+calcola([m(C, _, VP)| Ms], TotalValue) :-
+	calcolaVars(VP, SingleValue),
+	calcola(Ms, Rest),
+	TotalValue is C*SingleValue+Rest.
+
+calcolaVars([], 1).
+calcolaVars([v(E, B)| Vs], Value) :-
+	pow(B, E, V),
+	calcolaVars(Vs, Rest),
+	Value is V*Rest.
+
 
 as_monomial(E, m(E, 0, [])) :-
 	number(E).
@@ -352,8 +445,10 @@ as_monomial(E, m(E, 0, [])) :-
 	number(V).*/
 as_monomial(E, m(1, 1, [v(1, E)])) :-
 	atom(E).
+as_monomial(-E, m(-1, 1, [v(1, E)])) :-
+	atom(E).
 as_monomial(E, m(C, 1, [v(1, V)])) :-
-	E = C*V,
+	(E = C*V; E = V*C),
 	number(C),
 	atom(V).
 %Per esponente negativo scrivere x^(-2)
@@ -371,12 +466,12 @@ as_monomial(E, m(C, Exp, VPs)) :-
 	as_monomial(V1, m(C, Exp2, VP2)),
 	Exp is Exp2-Exp1,
 	append(VP1, VP2, VPs).
-/*as_monomial(E, m(C, Exp, [v(-Exp1, V)| T])) :-
-	E = V1/V2,
-	as_monomial(V2, m(1, Exp1, v(Exp1, V))),
-	as_monomial(V1, m(C, Exp2, T)),
-	Exp is Exp2-Exp1.*/
-
+as_monomial(E, m(-C, Exp, VPs)) :-
+	E = -(V1*V2),
+	as_monomial(V2, m(1, Exp1, VP1)),
+	as_monomial(V1, m(C, Exp2, VP2)),
+	Exp is Exp2+Exp1,
+	append(VP1, VP2, VPs).
 
 
 %Solo monomio
@@ -389,14 +484,10 @@ as_polynomial(E, poly(Monomials)) :-
         append(M, Ms, Monomials).
 as_polynomial(E, poly(Monomials)) :-
 	E = M1-M2,
-	M3 is -M2,
-	as_polynomial(M3, poly(M)),
+	as_polynomial(-M2, poly(M)),
 	as_polynomial(M1, poly(Ms)),
 	append(M, Ms, Monomials).
 
-reverse(List, RevL) :- accRev(List, [], RevL).
-accRev([], Acc, Acc).
-accRev([H| T], Acc, RevL) :- accRev(T, [H|Acc], RevL).
 
 pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	C\=[],
