@@ -7,6 +7,12 @@ coefficients(m(Coefficient, _, _), Coefficient) :-
 coefficients([m(Coefficient, _, _)| Xs], [Coefficient| Ys]) :-
 	number(Coefficient),
 	coefficients(Xs, Ys).
+coefficients(poly(Ms), Coefficients) :-
+	is_polynomial(poly(Ms)),
+	coefficients(Ms, Coefficients).
+coefficients(Poly, Coefficients) :-
+	as_polynomial(Poly, P),
+	coefficients(P, Coefficients).
 
 %%	variables(Poly, Variables)
 variables([], []).
@@ -23,13 +29,21 @@ variables([m(_,_, []) | Xs], Ys ) :-
 variables(poly(Ms), VarsOrdered) :-
 	variables(Ms, Vars),
 	sort(Vars, VarsOrdered).
+variables(Poly, Vars) :-
+	as_polynomial(Poly, P),
+	variables(P, Vars).
 
 
 %%%	is_monomial(m(Coefficient, TotalDegree, VarsPowers))
-is_monomial(m(_C, TD, VPs)) :-
+is_monomial(m(C, TD, VPs)) :-
+	number(C),
 	integer(TD),
 	TD >= 0,
-	is_list(VPs).  %E quando il monomio ha solo una variabile?
+	is_list(VPs),
+	%foreach(member(V, VPs), is_varpower(V)),
+	list_power([m(C, TD, VPs)], X),
+	sum_power(X, [Y]),
+	TD = Y.
 
 %%%	is_varpower(v(Power, VarSymbol))
 is_varpower(v(Power, VarSymbol)) :-
@@ -37,13 +51,27 @@ is_varpower(v(Power, VarSymbol)) :-
 	Power >= 0,
 	atom(VarSymbol).
 
+%%%	is_polynomial(poly(Monomials))
+is_polynomial(poly(Monomials)) :-
+	is_list(Monomials),
+	foreach(member(M, Monomials), is_monomial(M)).
+
+
 %%%	maxdegree and mindegree
-maxdegree(Poly, Degree) :-
-	list_degrees(Poly, Ds),
+maxdegree(poly(Ms), Degree) :-
+	is_polynomial(poly(Ms)),
+	list_degrees(Ms, Ds),
 	max(Ds, Degree).
-mindegree(Poly, Degree) :-
-	list_degrees(Poly, Ds),
+maxdegree(Poly, Degree) :-
+	as_polynomial(Poly, P),
+	maxdegree(P, Degree).
+mindegree(poly(Ms), Degree) :-
+	is_polynomial(poly(Ms)),
+	list_degrees(Ms, Ds),
 	min(Ds, Degree).
+mindegree(Poly, Degree) :-
+	as_polynomial(Poly, P),
+	mindegree(P, Degree).
 list_degrees([], []).
 list_degrees([m(C, Degree, V)| Ms], [Degree| Ds]) :-
 	is_monomial(m(C, Degree, V)),
@@ -71,11 +99,6 @@ accMin([H| T], Acc, Min) :-
 	H >= Acc,
 	accMin(T, Acc, Min).
 
-
-%%%	is_polynomial(poly(Monomials))
-is_polynomial(poly(Monomials)) :-
-	is_list(Monomials),
-	foreach(member(M, Monomials), is_monomial(M)).
 
 %%%     monomials(Poly, Monomials)
 
@@ -105,7 +128,7 @@ sum_power([X | Xs], [X | Ys]) :-
 	sum_power(Xs, Ys).
 
 monomials([], []).
-monomials(poly(X), poly(Y)) :-
+monomials(poly(X), Y) :-
 	list_power(X, X1),
 	sum_power(X1, X2),
 	ordina_monomi(X , M),
@@ -113,8 +136,8 @@ monomials(poly(X), poly(Y)) :-
 	ordina_stesso_grado(X3, Y).
 
 ordina_stesso_grado(Ms, L) :-
-	mindegree(Ms, MinG),
-	maxdegree(Ms, MaxG),
+	mindegree(poly(Ms), MinG),
+	maxdegree(poly(Ms), MaxG),
 	confronta(Ms, MinG, MaxG, [], L).
 
 confronta(_, G1, G, L, L) :-
@@ -122,8 +145,9 @@ confronta(_, G1, G, L, L) :-
 	G1 is G+1.
 confronta(Ms, G, MaxG, ListaProvv, List) :-
 	estrai_monomi(Ms, G, Xs),
-	sort(3, @=<, Xs, Ys),
-	sort([3, 1, 2], @=<, Ys, Ys1),
+	sort(2, @=<, Xs, Ys),
+	sort(3, @=<, Ys, Ys1),
+	%sort([3, 1, 2], @=<, Ys, Ys1),
 	append(ListaProvv, Ys1, Zs),
 	G1 is G+1,
 	confronta(Ms, G1, MaxG, Zs, List).
@@ -203,41 +227,48 @@ list_var(m( _, _, [v(_, Vs) | Zs ]),  [Vs | Ys] ) :-
 %ESPRESSIONE
 
 %In caso siano espressioni
-polyplus(Poly1, Poly2, Result) :-
-	as_polynomial(Poly1, P1),
-	as_polynomial(Poly2, P2),
-	polyplus(P1, P2, Result).
 polyplus(Poly1, Poly2, poly(Result)) :-
+	is_polynomial(Poly1),
+	is_polynomial(Poly2),
 	monomials(Poly1, Ms1),
 	monomials(Poly2, Ms2),
 	append(Ms1, Ms2, Ms),
 	dividi(Ms, SML),
-	sumLists(SML, poly(Result)). %magari riordinare i monomi prima di ritornarli
-
-%polyminus, fare Poly1+(-Poly2)
-polyminus(Poly1, Poly2, Result) :-
+	sumLists(SML, Result). %ORDINARE PRIMA DI RESTITUIRLO
+polyplus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
-	polyminus(P1, P2, Result).
+	polyplus(P1, P2, Result).
+
+
+%polyminus, fare Poly1+(-Poly2)
 polyminus(Poly1, Poly2, poly(Result)) :-
+	is_polynomial(Poly1),
+	is_polynomial(Poly2),
 	monomials(Poly1, Ms1),
 	monomials(Poly2, Ms2),
 	negateMonomials(Ms2, NegMs2),
 	append(Ms1, NegMs2, Ms),
 	dividi(Ms, SML),
-	sumLists(SML, poly(Result)).
-
-polytimes(Poly1, Poly2, Result) :-
+	sumLists(SML, Result).
+polyminus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
-	polytimes(P1, P2, Result).
+	polyminus(P1, P2, Result).
+
+
 polytimes(Poly1, Poly2, poly(Result)) :-
 	is_polynomial(Poly1),
 	is_polynomial(Poly2),
 	multiplicatePolynomials(Poly1, Poly2, MML),
 	monomials(poly(MML), Ms),
 	dividi(Ms, SML),
-	sumLists(SML, poly(Result)).
+	sumLists(SML, Result).
+polytimes(Poly1, Poly2, Result) :-
+	as_polynomial(Poly1, P1),
+	as_polynomial(Poly2, P2),
+	polytimes(P1, P2, Result).
+
 
 multiplicatePolynomials(poly(Ms1), poly(Ms2), MML) :-
 	is_list(Ms1),
@@ -246,9 +277,10 @@ multiplicatePolynomials(poly(Ms1), poly(Ms2), MML) :-
 accMultiplicatePolynomials([], [], []).
 accMultiplicatePolynomials(_, [], []).
 %accMultiplicatePolynomials(_, [], L, L) :- is_list(L).
-accMultiplicatePolynomials([X| Xs], [Y| Ys], [Z| Zs]) :-
+accMultiplicatePolynomials([X| Xs], [Y| Ys], Ms) :-
 	multiplicateMonomials([X| Xs], Y, Z),
-	accMultiplicatePolynomials([X| Xs], Ys, Zs).
+	accMultiplicatePolynomials([X| Xs], Ys, Zs),
+	append(Z, Zs, Ms).
 
 multiplicateMonomials([], _, []).
 multiplicateMonomials([m(C1, TD1, VP1)| Xs], m(C2, TD2, VP2), [m(C, TD, VP)| Zs]) :-
@@ -402,14 +434,16 @@ indexOf([_| T], E, Index) :-
 	!,
 	Index is Index1+1.
 
-polyval(Poly, VariableValues, Value) :-
-	as_polynomial(Poly, P),
-	polyval(P, VariableValues, Value).
 polyval(poly(Ms), VariableValues, Value) :-
+	is_polynomial(poly(Ms)),
 	variables(poly(Ms), Vars),
 	is_number_list(VariableValues),
 	sostituisci(Ms, Vars, VariableValues, Xs),
 	calcola(Xs, Value).
+polyval(Poly, VariableValues, Value) :-
+	as_polynomial(Poly, P),
+	polyval(P, VariableValues, Value).
+
 
 sostituisci([], _, _, []).
 sostituisci([m(C, TD, VP)| Ms], Vars, VariableValues, [m(C, TD, VPs)| Xs]) :-
@@ -435,43 +469,71 @@ calcolaVars([v(E, B)| Vs], Value) :-
 	Value is V*Rest.
 
 
-as_monomial(E, m(E, 0, [])) :-
-	number(E).
+%CASO GENERALE, PER CHIAMARE SORT SOLO UNA VOLTA
+as_monomial(E, m(C, G, Vs)) :-
+	as_mony(E, m(C, G, VPs)),
+        sort(2, @=<, VPs, Vs).
+as_mony(E, m(E, 0, [])) :-
+	number(E),
+	E \= 0.
+as_mony(E, m(0, 0, [])) :-
+	(E = 0*_; E = _*0).
 /*as_monomial(E, m(E, 0, [])) :-
 	compound(E),
 	functor(E, Fun, N),
 	atom(Fun),
 	arg(N, E, V),
 	number(V).*/
-as_monomial(E, m(1, 1, [v(1, E)])) :-
+as_mony(E, m(V, 0, [])) :-                    %VA CALCOLATO O LASCIATO COSI'?
+	arithmetic_expression_value(E, V),
+	V \= 0.
+as_mony(E, m(1, 1, [v(1, E)])) :-
 	atom(E).
-as_monomial(-E, m(-1, 1, [v(1, E)])) :-
+as_mony(-E, m(-1, 1, [v(1, E)])) :-
 	atom(E).
-as_monomial(E, m(C, 1, [v(1, V)])) :-
+as_mony(E, m(C, 1, [v(1, V)])) :-
 	(E = C*V; E = V*C),
 	number(C),
+	C \= 0,
+	atom(V).
+as_mony(E, m(C1, 1, [v(1, V)])) :-
+	(E = C*V; E = V*C),
+	arithmetic_expression_value(C, C1),
+	C1 \= 0,
 	atom(V).
 %Per esponente negativo scrivere x^(-2)
-as_monomial(E, m(1, Exp, [v(Exp, B)])) :-
-	E = B^Exp.
-as_monomial(E, m(C, Exp, VPs)) :-
+as_mony(E, m(1, Exp, [v(Exp, B)])) :-
+	E = B^Exp,
+	Exp \= 0.
+as_mony(E, m(1, 0, [])) :-
+	E = _^0.
+as_mony(E, m(C, Exp, VPs)) :-
 	E = V1*V2,
-	as_monomial(V2, m(1, Exp1, VP1)),
-	as_monomial(V1, m(C, Exp2, VP2)),
+	as_mony(V2, m(1, Exp1, VP1)),
+	as_mony(V1, m(C, Exp2, VP2)),
+	C \= 0,
 	Exp is Exp1+Exp2,
         append(VP1, VP2, VPs).
-as_monomial(E, m(C, Exp, VPs)) :-
+as_mony(E, m(C, Exp, VPs)) :-
 	E = V1/V2,
-	as_monomial(V2, m(1, Exp1, VP1)),
-	as_monomial(V1, m(C, Exp2, VP2)),
+	as_mony(V2, m(1, Exp1, VP1)),
+	as_mony(V1, m(C, Exp2, VP2)),
+	C \= 0,
 	Exp is Exp2-Exp1,
 	append(VP1, VP2, VPs).
-as_monomial(E, m(-C, Exp, VPs)) :-
+as_mony(E, m(-C, Exp, VPs)) :-
 	E = -(V1*V2),
-	as_monomial(V2, m(1, Exp1, VP1)),
-	as_monomial(V1, m(C, Exp2, VP2)),
+	as_mony(V2, m(1, Exp1, VP1)),
+	as_mony(V1, m(C, Exp2, VP2)),
+	C \= 0,
 	Exp is Exp2+Exp1,
 	append(VP1, VP2, VPs).
+%Caso moltiplicazione per zero. Caso divisione per zero?
+as_mony(E, m(0, 0, [])) :-
+	(E = V1*V2; E = V1/V2; E = -(V1*V2)),
+	as_mony(V2, m(1, _, _)),
+	as_mony(V1, m(C, _, _)),
+	C is 0.
 
 
 %Solo monomio
@@ -481,15 +543,20 @@ as_polynomial(E, poly(Monomials)) :-
 	E = M1+M2,
 	as_polynomial(M2, poly(M)),
 	as_polynomial(M1, poly(Ms)),
-        append(M, Ms, Monomials).
+        append(M, Ms, Ms2),
+	monomials(poly(Ms2), Monomials).
 as_polynomial(E, poly(Monomials)) :-
 	E = M1-M2,
 	as_polynomial(-M2, poly(M)),
 	as_polynomial(M1, poly(Ms)),
-	append(M, Ms, Monomials).
+	append(M, Ms, Ms2),
+	monomials(poly(Ms2), Monomials).
 
-
-pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
+%CASO GENERALE, per controllo che sia un polinomio
+pprint_polynomial(Poly) :-
+	is_polynomial(Poly),
+	pprint_poly(Poly).
+pprint_poly(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	C\=[],
 	C\=0,
 	C>0,
@@ -499,7 +566,7 @@ pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	write(C*V^N),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
+pprint_poly(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	C\=[],
 	C\=0,
 	C<0,
@@ -507,7 +574,7 @@ pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	write(C*V^N),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
+pprint_poly(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	C\=[],
 	C\=0,
 	C=1,
@@ -516,7 +583,7 @@ pprint_polynomial(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	write(V^N),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
+pprint_poly(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
 	C\=[],
 	C\=0,
 	C>0,
@@ -525,14 +592,14 @@ pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
 	write(C*V),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
+pprint_poly(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
 	C\=[],
 	C\=0,
 	C<0,
 	write(C*V),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
+pprint_poly(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
 	C\=[],
 	C\=0,
 	C=1,
@@ -540,39 +607,39 @@ pprint_polynomial(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
 	write(V),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m(C, _, [_ | _]) | Ps])) :-
+pprint_poly(poly([m(C, _, [_ | _]) | Ps])) :-
 	C=0,
 	pprint_polynomial(poly(Ps)).
 
 
-pprint_polynomial(poly([m([], _, [v(N, V) | Vs]) | Ps])) :-
+pprint_poly(poly([m([], _, [v(N, V) | Vs]) | Ps])) :-
 	Vs\=[],
 	N\=1,
 	write(*),
 	write(V^N),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m([], _, [v(N, V)]) | Ps])) :-
+pprint_poly(poly([m([], _, [v(N, V)]) | Ps])) :-
 	N\=1,
 	write(*),
 	write(V^N),
 	pprint_polynomial(poly(Ps)).
 
-pprint_polynomial(poly([m([], _, [v(1, V) | Vs]) | Ps])) :-
+pprint_poly(poly([m([], _, [v(1, V) | Vs]) | Ps])) :-
 	Vs\=[],
 	write(*),
 	write(V),
 	pprint_polynomial(poly([m([], _, Vs) | Ps])).
 
-pprint_polynomial(poly([m([], _, [v(1, V)]) | Ps])) :-
+pprint_poly(poly([m([], _, [v(1, V)]) | Ps])) :-
 	write(*),
 	write(V),
 	pprint_polynomial(poly(Ps)).
 
-pprint_polynomial(poly([m([], _, []) | Ps])) :-
+pprint_poly(poly([m([], _, []) | Ps])) :-
 		pprint_polynomial(poly(Ps)).
 
-pprint_polynomial(poly([])) :-
+pprint_poly(poly([])) :-
 	fail.
 
 
