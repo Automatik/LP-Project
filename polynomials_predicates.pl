@@ -1,5 +1,23 @@
 %%% -*- Mode: Prolog -*-
 
+
+/*
+ * PROBLEMI DA SISTEMARE:
+ *
+ * - Rappresentazioni dello zero: 0 è m(0, 0, []) o poly([])
+ * - Nascondere dai risultati di somme, sottrazioni e moltiplicazioni
+ * gli zeri
+ * - Sommare o moltiplicare monomi simili: es x*x=x^2 o x+x=2x
+ * - Ordinamento non perfetto
+ * - Snellire codice, unire eventuali funzioni duplicate
+ * - Ordinare risultati di polyplus, minus e times
+ * */
+
+
+
+
+
+
 %%	coefficients(Poly, Coefficients)
 coefficients([], []).
 coefficients(m(Coefficient, _, _), Coefficient) :-
@@ -474,8 +492,8 @@ as_monomial(E, m(C, G, Vs)) :-
 	as_mony(E, m(C, G, VPs)),
         sort(2, @=<, VPs, Vs).
 as_mony(E, m(E, 0, [])) :-
-	number(E),
-	E \= 0.
+	number(E).
+%	E \= 0.
 as_mony(E, m(0, 0, [])) :-
 	(E = 0*_; E = _*0).
 /*as_monomial(E, m(E, 0, [])) :-
