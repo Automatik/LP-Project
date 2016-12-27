@@ -34,6 +34,24 @@
 (defun varpowers (m)
   (cond ((is-monomial m) (fourth m))))
 
+(defun vars-of (m)
+  (let ((vps (varpowers m)))
+    (if (null (every #'is-varpower vps))
+        null
+      (var-symbols vps))))
+
+(defun var-symbols (vps)
+  (if (null vps)
+      nil
+    (flatten (list (third (first vps)) (var-symbols (rest vps))))))
+
+; manca in lispworks
+(defun flatten (l)
+  (if l
+      (if (atom l) 
+          (list l) 
+        (mapcan #'flatten l))))
+
 ;; do per scontato che sia nella forma corretta di monomio?
 (defun monomial-degree (m)
   (let ((vps (varpowers m)))
@@ -55,7 +73,13 @@
     (let ((ms (second p)))
       (mapcar 'monomial-coefficient ms))))
 
-
+; Manca ordinamento
+(defun variables (p)
+  (if (null (is-polynomial p))
+      null
+    (let ((ms (second p)))
+      (flatten (mapcar 'vars-of ms)) #'symbol<)))
+      
 
 
 
