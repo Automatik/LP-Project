@@ -11,6 +11,8 @@
  * - Ordinamento non perfetto
  * - Snellire codice, unire eventuali funzioni duplicate
  * - Ordinare risultati di polyplus, minus e times
+ * - Il grado di un monomio o una variabile deve essere per forza
+ * positivo? E' stato messo >=0 ma potrebbe funzionare anche se negativi
  * */
 
 
