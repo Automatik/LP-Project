@@ -31,13 +31,14 @@
          (and (listp ms)
               (every #'is-monomial ms)))))
 
+; da rivedere: (v 1 x)
 (defun varpowers (m)
   (cond ((is-monomial m) (fourth m))))
 
 (defun vars-of (m)
   (let ((vps (varpowers m)))
     (if (null (every #'is-varpower vps))
-        null
+        nil
       (var-symbols vps))))
 
 (defun var-symbols (vps)
@@ -52,11 +53,19 @@
           (list l) 
         (mapcan #'flatten l))))
 
+
+#|(defun flatten (x)
+  (cond ((null x) x)
+        ((atom x) (list x))
+        (T (append (flatten (first x))
+                   (flatten (rest x)))))) |#
+
+
 ;; do per scontato che sia nella forma corretta di monomio?
 (defun monomial-degree (m)
   (let ((vps (varpowers m)))
     (if (null (every #'is-varpower vps))
-        null
+        nil
       (sum-varpowers vps))))
 
 (defun sum-varpowers (vps)
@@ -69,16 +78,81 @@
 
 (defun coefficients (p)
   (if (null (is-polynomial p))
-      null
+      nil
     (let ((ms (second p)))
       (mapcar 'monomial-coefficient ms))))
 
 ; Manca ordinamento
 (defun variables (p)
   (if (null (is-polynomial p))
-      null
+      nil
     (let ((ms (second p)))
-      (flatten (mapcar 'vars-of ms)) #'symbol<)))
+      (flatten (mapcar 'vars-of ms)))))   ;oppure: (apply 'vars-of 'ms)
+
+(defun maxdegree (p)
+  (if (null (is-polynomial p))
+      nil
+    (let ((ms (second p)))
+      (apply 'max (mapcar 'monomial-degree ms)))))
+
+(defun mindegree (p)
+  (if (null (is-polynomial p))
+      nil
+    (let ((ms (second p)))
+      (apply 'min (mapcar 'monomial-degree ms)))))
+
+;funziona solo con coefficiente come primo elemento
+(defun as-monomial (m)
+  (if (or (null (listp m))
+          (eq 'expt (first m)))
+      (as-mony m)
+    (let ((coeff (car (cdr m)))
+          (vars (mapcar 'as-mony (cdr (cdr m)))))
+      (if (and (not (null coeff)) ;se coeff non nullo e lista inizia con operatore *
+               (eq '* (first m)))
+          (if (null (numberp coeff)) ;se il coeff è una variabile
+              (if (null (cdr (cdr m))) ;se non c'è qualcosa dopo il coeff(var) nella lista
+                  (list 'm 1 (sum-varpowers (list (as-mony coeff)) (as-mony coeff)))
+                (if (null (member nil vars)) ;se vars non contiene nessuna variabile scritta male(cioè valore NIL)
+                    (list 'm
+                          1
+                          (sum-varpowers (append (list (as-mony coeff)) vars))
+                          (append (list (as-mony coeff)) vars))
+                  nil))
+            (if (null (cdr (cdr m))) ;se non c'è qualcosa dopo il coeff(num) nella lista
+                (list 'm coeff 0 nil)
+              (if (null (member nil vars)) ;se vars non contiene nessuna variabile scritta male(cioè valore NIL)
+                  (list 'm
+                        coeff
+                        (sum-varpowers vars)
+                        vars)
+                nil)))
+        nil))))
+          
+(defun as-mony (m)
+  (cond ((numberp m) `(,m 0 nil))
+        ((symbolp m) `(v 1 ,m))
+        ((and (listp m)
+              (eq 'expt (first m))) (let ((var (second m))
+                                          (exp (third m)))
+                                      (if (or (null (numberp exp))
+                                              (null (symbolp var)))
+                                          nil
+                                        `(v ,exp ,var))))))
+
+(defun as-polynomial (p)
+  (if (or (null (listp p)) ; se è un singolo monomio
+          (eq 'expt (first p))
+          (eq '* (first p)))
+      (list 'poly
+            (as-monomial p))
+    (if (or (eq '+ (first p))
+            (eq '- (first p)))
+        (let ((ms (cdr p)))
+          (list 'poly
+                (mapcar 'as-monomial ms)))
+      nil)))
+           
       
 
 
