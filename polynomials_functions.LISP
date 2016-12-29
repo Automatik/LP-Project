@@ -105,7 +105,7 @@
 (defun as-monomial (m)
   (if (or (null (listp m))
           (eq 'expt (first m)))
-      (as-mony m)
+      (add-m (as-mony m))
     (let ((coeff (car (cdr m)))
           (vars (mapcar 'as-mony (cdr (cdr m)))))
       (if (and (not (null coeff)) ;se coeff non nullo e lista inizia con operatore *
@@ -130,7 +130,7 @@
         nil))))
           
 (defun as-mony (m)
-  (cond ((numberp m) `(,m 0 nil))
+  (cond ((numberp m) m) ;`('m 0 nil)
         ((symbolp m) `(v 1 ,m))
         ((and (listp m)
               (eq 'expt (first m))) (let ((var (second m))
@@ -140,18 +140,40 @@
                                           nil
                                         `(v ,exp ,var))))))
 
+(defun add-m (m)
+  (cond ((numberp m) (list 'm  m 0 nil)) ;se m è un numero
+        ((and (listp m)              ;se m è una variabile
+              (eq 'v (first m)))
+         (list 'm 1 (second m) (list m)))))
+
 (defun as-polynomial (p)
-  (if (or (null (listp p)) ; se è un singolo monomio
-          (eq 'expt (first p))
-          (eq '* (first p)))
-      (list 'poly
-            (as-monomial p))
-    (if (or (eq '+ (first p))
-            (eq '- (first p)))
-        (let ((ms (cdr p)))
-          (list 'poly
-                (mapcar 'as-monomial ms)))
-      nil)))
+  (cond ((null (listp p)) (list 'poly (list (as-monomial p))))
+        ((and (listp p)
+              (or (eq 'expt (first p))
+                  (eq '* (first p))))
+         (list 'poly (list (as-monomial p))))
+        ((or (eq '+ (first p))
+             (eq '- (first p)))
+         (let ((ms (cdr p)))
+           (list 'poly
+                 (mapcar 'as-monomial ms))))))
+    
+#|(defun polyplus (p1 p2)
+  (if (and (is-polynomial p1)
+           (is-polynomial p2))
+      (sum-lists (dividi (append (second p1) 
+                                 (second p2))))))|#
+
+#|(defun dividi (ms l)
+  (if (listp ms)
+      (if (not (null ms))
+          (let ((m (first ms))
+                (subl (presente m l)))
+            (if (not (null subl))
+                (append subl 
+                        (list m))|#
+      
+  
            
       
 
