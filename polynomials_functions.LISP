@@ -101,7 +101,7 @@
     (let ((ms (second p)))
       (apply 'min (mapcar 'monomial-degree ms)))))
 
-;funziona solo con coefficiente come primo elemento
+;funziona solo con coefficiente come primo elemento e non messo in un altra posizione
 (defun as-monomial (m)
   (if (or (null (listp m))
           (eq 'expt (first m)))
@@ -158,21 +158,91 @@
            (list 'poly
                  (mapcar 'as-monomial ms))))))
     
-#|(defun polyplus (p1 p2)
+(defun polyplus (p1 p2)
   (if (and (is-polynomial p1)
            (is-polynomial p2))
-      (sum-lists (dividi (append (second p1) 
-                                 (second p2))))))|#
+      (list 'poly 
+            (sum-lists (dividi (append (second p1) 
+                                       (second p2))
+                               '())))
+    nil))
 
-#|(defun dividi (ms l)
+(defun polyminus (p1 p2)
+  (if (and (is-polynomial p1)
+           (is-polynomial p2))
+      (list 'poly
+            (sum-lists (dividi (append (second p1)
+                                       (negate-monomials (second p2)))
+                               '())))
+    nil))
+
+(defun sum-lists (ms)
+  (if (and (listp ms)
+           (not (null ms)))
+      (append (list (sum-monomials (first ms))) (sum-lists (rest ms)))
+    nil))
+
+(defun sum-monomials (ms)
+  (if (listp ms)
+      (if (not (null ms))
+          (let ((m (first ms)))
+            (list 'm
+                  (+ (monomial-coefficient m)
+                     (monomial-coefficient (sum-monomials (rest ms))))
+                  (monomial-degree m)
+                  (varpowers m)))
+        (list 'm 0 0 nil))
+    nil))
+
+(defun dividi (ms l)
   (if (listp ms)
       (if (not (null ms))
           (let ((m (first ms))
-                (subl (presente m l)))
-            (if (not (null subl))
-                (append subl 
-                        (list m))|#
-      
+                (subl (presente (first ms) l)))
+            (if (not (null subl)) ;base letterale di m già presente nella lista
+                (dividi (rest ms)
+                        (append (remove-sublist l subl)
+                                (list (append subl (list m)))))
+              (dividi (rest ms) ;aggiungo m con la sua base letterale alla lista
+                      (append l (list (list m))))))
+        l)
+    nil))
+              
+
+(defun remove-sublist (l sublist)
+  (if (and (listp l)
+           (listp sublist)
+           (not (null l)))
+      (if (equal sublist (first l))
+          (remove-sublist (rest l) sublist)
+        (append (list (first l)) (remove-sublist (rest l) sublist)))
+    nil))
+
+(defun presente (m l)
+  (if (and (listp l)
+           (not (null l)))
+           ;(is-monomial m))
+      (let ((sublist (first l))
+            (monomial (first (first l))))
+        (if (and (eq (monomial-degree m) (monomial-degree monomial))
+                 (equal (varpowers m) (varpowers monomial)))
+            sublist
+          (presente m (rest l))))
+    nil))
+
+(defun negate-monomials (ms)
+  (if (and (listp ms)
+           (not (null ms)))
+      (let ((m (first ms))
+            (coeff (monomial-coefficient (first ms))))
+        (append (list (list 'm
+                            (- coeff)
+                            (monomial-degree m)
+                            (varpowers m)))
+                (negate-monomials (rest ms))))
+    nil))
+        
+
   
            
       
