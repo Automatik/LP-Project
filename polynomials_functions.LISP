@@ -361,7 +361,7 @@
 (defun monomials (p)
   (if (null (is-polynomial p))
       nil
-    (append (list 'poly) (ordina-monomi (mergesort (second p)))))) 
+    (append (list 'poly) (list (ordina-stesso-grado (ordina-monomi (mergesort (second p))) (mindegree p)))))) 
   
 
 (defun list-head (lst n) (if (eq n 0) '() (cons (car lst) (list-head (cdr lst) (- n 1)))))
@@ -453,3 +453,65 @@
                                ((< power 0) (concatenate 'string (string var)  "^ -(" (write-to-string power) ") "(print-vars (rest vs))))))
           nil)
     nil))
+
+(defun ordina-stesso-grado (p g) 
+  (if (<= g (maxdegree (append (list 'POLY p) )))
+      (append (mergesort3 (estrai-stesso-grado p g)) (ordina-stesso-grado p (+ g 1))) 
+    nil))
+
+(defun estrai-stesso-grado (p g) 
+  (cond ((null (is-monomial (car p)))
+         nil)
+        ((eq (third (car p)) g) 
+         (append (list (car p)) (estrai-stesso-grado (rest p) g)))
+        (T (estrai-stesso-grado (rest p) g))))
+         
+(defun _merge3 (lst-a lst-b)
+  (cond ((not lst-a) lst-b)
+        ((not lst-b) lst-a)
+        ((paragona-var-powers (fourth (car lst-a)) (fourth (car lst-b)))  (cons (car lst-a) (_merge3 (cdr lst-a) lst-b)))
+        (T (cons (car lst-b) (_merge3 lst-a (cdr lst-b))))))
+
+(defun mergesort3 (lst)
+  (cond ((null lst) nil)
+        ((eq (length lst) 1) lst)
+        (T (_merge3 (mergesort3 (list-head lst (truncate (length lst) 2)))
+                    (mergesort3 (list-tail lst (truncate (length lst) 2)))))))
+  
+(defun paragona-var-powers (a b)
+  (cond ((char< (char (string (third (car a))) 0) (char (string (third (car b))) 0) )
+         T)
+        ((char> (char (string (third (car a))) 0) (char (string (third (car b))) 0) )
+         nil)
+        ((null a)
+         nil)
+        ((null b)
+         T)
+        ((confronto-liste (var-symbols a) (var-symbols b))
+         (paragona-powers a b))
+        ((eq (third (car a)) (third (car b)))
+         (paragona-var-powers (rest a) (rest b)))))
+
+(defun paragona-powers (a b)
+  (cond ((< (second (first a)) (second (first b)))
+         T)
+        ((> (second (first a)) (second (first b)))
+         nil)
+        ((and (eq (second (first a)) (second (first b))) (null (rest a)))
+         T)
+        ((eq (second (first a)) (second (first b)))
+         (paragona-powers (rest a) (rest b)))))
+
+(defun confronto-liste (a b)
+  (if (eq (length a) (length b))
+      (cond ((null (rest a))
+             (if (eq (first a) (first b))
+                 T
+               nil))
+            ((eq (first a) (first b))
+             (confronto-liste (rest a) (rest b)))
+            (T nil))
+    nil))
+             
+         
+         
