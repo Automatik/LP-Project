@@ -178,12 +178,15 @@
                                '())))
     nil))
 
-#|(defun polytimes (p1 p2)
+(defun polytimes (p1 p2)
   (if (and (is-polynomial p1)
            (is-polynomial p2))
       (list 'poly
-            (sum-lists))
-    nil))|#
+            (sum-lists (dividi (monomials (list 'poly
+                                                (multiplicate-polynomials (second p1)
+                                                                          (second p2))))
+                               '())))
+    nil))
 
 (defun multiplicate-polynomials (ms1 ms2)
   (if (and (listp ms1)
@@ -304,11 +307,211 @@
                             (varpowers m)))
                 (negate-monomials (rest ms))))
     nil))
-        
 
+;VariableValues è una lista anche nel caso di un solo valore? es ((v 1 x)) VV=3 o (3)?
+(defun polyval (p varvalues)
+  (if (and (is-polynomial p)
+           (every #'numberp varvalues))
+      (let ((vars (variables p)))
+        (calcola (sostituisci (second p) vars varvalues)))
+    nil))
+
+(defun sostituisci (ms vars varvalues)
+  (if (and (listp ms)
+           (listp vars)
+           (listp varvalues))
+      (if (not (null ms))
+          (let ((vs (varpowers (first ms))))
+            (append (list (append (remove-sublist (first ms) vs)
+                            (list (cambia vs vars varvalues))))
+                    (sostituisci (rest ms) vars varvalues)))
+        nil)
+    nil))
+
+(defun cambia (vs vars varvalues)
+  (if (and (listp vs)
+           (listp vars)
+           (listp varvalues))
+      (if (not (null vs))
+          (append (list (list 'v 
+                              (second (first vs))
+                              (nth (position (third (first vs)) vars)
+                                   varvalues)))
+                  (cambia (rest vs) vars varvalues))
+        nil)
+    nil))
+
+(defun calcola (ms)
+  (if (listp ms)
+      (if (not (null ms))
+          (+ (* (second (first ms))
+                (calcola-vars (fourth (first ms))))
+             (calcola (rest ms)))
+        0)
+    0))
+
+(defun calcola-vars (vs)
+  (if (listp vs)
+      (if (not (null vs))
+          (* (expt (third (first vs)) (second (first vs)))
+             (calcola-vars (rest vs)))
+        1)
+    1))    
   
-           
-      
+(defun monomials (p)
+  (if (null (is-polynomial p))
+      nil
+    (append (list 'poly) (list (ordina-stesso-grado (ordina-monomi (mergesort (second p))) (mindegree p)))))) 
+  
+
+(defun list-head (lst n) (if (eq n 0) '() (cons (car lst) (list-head (cdr lst) (- n 1)))))
+(defun list-tail (lst n) (if (eq n 0) lst (list-tail (cdr lst) (- n 1))))
+
+(defun _merge (lst-a lst-b)
+  (cond ((not lst-a) lst-b)
+        ((not lst-b) lst-a)
+        ((< (monomial-degree (car lst-a)) (monomial-degree (car lst-b))) (cons (car lst-a) (_merge (cdr lst-a) lst-b)))
+        (T (cons (car lst-b) (_merge lst-a (cdr lst-b))))))
+
+(defun mergesort (lst)
+  (if (eq (length lst) 1)
+    lst
+    (_merge (mergesort (list-head lst (truncate (length lst) 2)))
+            (mergesort (list-tail lst (truncate (length lst) 2))))))
+ 
+;(defun ordina-monomi (p) 
+  #|(if (null (second p))
+      nil
+  (append (list 'poly) (append ((first p) (second p) (third p) (mergesort2 (fourth (car (second p)))))  (ordina-monomi(second p))))))|#
+(defun ordina-monomi (ms)
+  (if (null ms)
+      nil
+    (let ((m (first ms))
+          (vs (varpowers (first ms))))
+      (append (list (append (remove-sublist m vs)
+                      (list (mergesort2 vs))))
+              (ordina-monomi (rest ms))))))
 
 
+(defun _merge2 (lst-a lst-b)
+  (cond ((not  lst-a) lst-b)
+        ((not  lst-b) lst-a)
+        #|((null (car lst-a)) lst-b)
+        ((null (car lst-b)) lst-a)
+        ((and (null (car lst-a)) ;caso tutte due NIL, vince a caso lst-a
+              (null (car lst-b))) lst-a) |#
+        ;((null (car lst-a)) (cons (car lst-b) (_merge2 lst-a (cdr lst-b))))
+        ;((null (car lst-b)) (cons (car lst-a) (_merge2 (cdr lst-a) lst-b)))
+        ((char< (char (string (third (car lst-a))) 0) (char (string (third (car lst-b))) 0) ) (cons (car lst-a) (_merge2 (cdr lst-a) lst-b)))
+        (T (cons (car lst-b) (_merge2 lst-a (cdr lst-b))))))
 
+(defun mergesort2 (lst)
+  #|(if (eq (length lst) 1)
+    lst
+    (_merge2 (mergesort2 (list-head lst (truncate (length lst) 2)))
+            (mergesort2 (list-tail lst (truncate (length lst) 2))))))|#
+  (cond ((null lst) nil)
+        ((eq (length lst) 1) lst)
+        (T (_merge2 (mergesort2 (list-head lst (truncate (length lst) 2)))
+                    (mergesort2 (list-tail lst (truncate (length lst) 2)))))))
+
+(defun pprint-polynomial (p) 
+  (if (null (is-polynomial p))
+      nil
+    (format t "~s" (print-monomials (second p)))))
+
+(defun print-monomials (ms) 
+  (if (listp ms)
+      (if (not (null ms))
+          (let ((c (monomial-coefficient (first ms)))
+                (vs (varpowers (first ms))))
+            (cond ((> c 1) (concatenate 'string "+" (write-to-string c) " "
+                                        (print-vars vs)
+                                        (print-monomials (rest ms))))
+                  ((< c 0) (concatenate 'string (write-to-string c) " "
+                                        (print-vars vs)
+                                        (print-monomials (rest ms))))
+                  ((eq c 1) (concatenate 'string  " +"
+                                        (print-vars vs)
+                                        (print-monomials (rest ms))))))
+            ;(format t " ~d" c)
+            ;(print-vars vs)
+            ;(print-monomials (rest ms)))
+            ;(format t "~d ~s ~s" c (print-vars vs) (print-monomials (rest ms))))
+        nil)
+    nil))
+
+(defun print-vars (vs) 
+  (if (listp vs)
+      (if (not (null vs))  
+                       (let ((power (second (first vs)))
+                             (var (third (first vs))))
+                         (cond ((eq power 1) (concatenate 'string (string var) " "))
+                               ;((> power 1) (format t " ~s ^ ~d" var power))
+                               ;((< power 0) (format t " ~s ^(- ~d)" var power))))
+                               ((> power 1) (concatenate 'string (string var)  "^" (write-to-string power) " " (print-vars (rest vs))))
+                               ((< power 0) (concatenate 'string (string var)  "^ -(" (write-to-string power) ") "(print-vars (rest vs))))))
+          nil)
+    nil))
+
+(defun ordina-stesso-grado (p g) 
+  (if (<= g (maxdegree (append (list 'POLY p) )))
+      (append (mergesort3 (estrai-stesso-grado p g)) (ordina-stesso-grado p (+ g 1))) 
+    nil))
+
+(defun estrai-stesso-grado (p g) 
+  (cond ((null (is-monomial (car p)))
+         nil)
+        ((eq (third (car p)) g) 
+         (append (list (car p)) (estrai-stesso-grado (rest p) g)))
+        (T (estrai-stesso-grado (rest p) g))))
+         
+(defun _merge3 (lst-a lst-b)
+  (cond ((not lst-a) lst-b)
+        ((not lst-b) lst-a)
+        ((paragona-var-powers (fourth (car lst-a)) (fourth (car lst-b)))  (cons (car lst-a) (_merge3 (cdr lst-a) lst-b)))
+        (T (cons (car lst-b) (_merge3 lst-a (cdr lst-b))))))
+
+(defun mergesort3 (lst)
+  (cond ((null lst) nil)
+        ((eq (length lst) 1) lst)
+        (T (_merge3 (mergesort3 (list-head lst (truncate (length lst) 2)))
+                    (mergesort3 (list-tail lst (truncate (length lst) 2)))))))
+  
+(defun paragona-var-powers (a b)
+  (cond ((char< (char (string (third (car a))) 0) (char (string (third (car b))) 0) )
+         T)
+        ((char> (char (string (third (car a))) 0) (char (string (third (car b))) 0) )
+         nil)
+        ((null a)
+         nil)
+        ((null b)
+         T)
+        ((confronto-liste (var-symbols a) (var-symbols b))
+         (paragona-powers a b))
+        ((eq (third (car a)) (third (car b)))
+         (paragona-var-powers (rest a) (rest b)))))
+
+(defun paragona-powers (a b)
+  (cond ((< (second (first a)) (second (first b)))
+         T)
+        ((> (second (first a)) (second (first b)))
+         nil)
+        ((and (eq (second (first a)) (second (first b))) (null (rest a)))
+         T)
+        ((eq (second (first a)) (second (first b)))
+         (paragona-powers (rest a) (rest b)))))
+
+(defun confronto-liste (a b)
+  (if (eq (length a) (length b))
+      (cond ((null (rest a))
+             (if (eq (first a) (first b))
+                 T
+               nil))
+            ((eq (first a) (first b))
+             (confronto-liste (rest a) (rest b)))
+            (T nil))
+    nil))
+             
+         
+         
