@@ -165,9 +165,10 @@ confronta(_, G1, G, L, L) :-
 	G1 is G+1.
 confronta(Ms, G, MaxG, ListaProvv, List) :-
 	estrai_monomi(Ms, G, Xs),
-	sort(2, @=<, Xs, Ys),
-	sort(3, @=<, Ys, Ys1),
+	%sort(2, @=<, Xs, Ys),
+	%sort(3, @=<, Ys, Ys1),
 	%sort([3, 1, 2], @=<, Ys, Ys1),
+	mergesort3(Xs, Ys1),
 	append(ListaProvv, Ys1, Zs),
 	G1 is G+1,
 	confronta(Ms, G1, MaxG, Zs, List).
@@ -223,6 +224,103 @@ merge2([A | Ra],[B | Rb],[B | M],[A1 | Ra1],[B1 | Rb1],[B1 | M1]) :-
 	A @> B,
 	merge2([A | Ra], Rb, M, [A1 | Ra1], Rb1, M1).
 
+mergesort3([], []).
+mergesort3([A], [A]).
+mergesort3([A,B | R], S) :-
+   split3([A,B | R], L1, L2),
+   mergesort3(L1, S1),
+   mergesort3(L2, S2),
+   merge3(S1, S2, S).
+
+split3([], [], []).
+split3([A], [A], []).
+split3([A, B | R],[A | Ra],[B | Rb]) :-
+	split3(R, Ra, Rb).
+
+merge3(A, [], A).
+merge3([], B, B).
+merge3([A | Ra], [B | Rb], [A | M]) :-
+	confronto_stesso_grado(A, B),
+	merge3(Ra,[B|Rb],M).
+merge3([A | Ra],[B | Rb],[B | M]) :-
+	confronto_stesso_grado2(A,B),
+	merge3([A | Ra], Rb, M).
+merge3([A | Ra], [B | Rb], [A | M]) :-
+	variables([A], X),
+	variables([B], Y),
+	maxdegree(poly([A]),Z),
+	Z\=0,
+	X = Y,
+	confronto_esponente(A, B),
+	merge3(Ra,[B|Rb],M).
+merge3([A | Ra],[B | Rb],[B | M]) :-
+	variables([A], X),
+	variables([B], Y),
+	maxdegree(poly([A]),Z),
+	Z\=0,
+	X = Y,
+	confronto_esponente2(A, B),
+	merge3([A | Ra], Rb, M).
+
+merge3([A | Ra], [B | Rb], [A | M]) :-
+	variables([A], []),
+	variables([B], []),
+	confronto_coefficiente(A, B),
+	merge3(Ra,[B|Rb],M).
+
+merge3([A | Ra],[B | Rb],[B | M]) :-
+	variables([A], []),
+	variables([B], []),
+	confronto_coefficiente2(A, B),
+	merge3([A | Ra], Rb, M).
+
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> origin/master
+confronto_stesso_grado(m( _, _, [v( _, Var) | _]), m( _, _, [v( _, Var2) | _])) :-
+	Var @< Var2.
+confronto_stesso_grado(m( _, _, [v( _, Var) | Vs]), m( _, _, [v( _, Var) | Vs2])) :-
+	confronto_stesso_grado(m( _, _, Vs), m( _, _, Vs2)).
+confronto_stesso_grado(m( _, _, []), m( _, _, [])) :-
+	fail.
+confronto_stesso_grado(m( _, _, Vs), m( _, _, [])) :-
+	Vs\=[].
+
+confronto_stesso_grado2(m( _, _, [v( _, Var) | _]), m( _, _, [v( _, Var2) | _])) :-
+	Var @> Var2.
+confronto_stesso_grado2(m( _, _, [v( _, Var) | Vs]), m( _, _, [v( _, Var) | Vs2])) :-
+	confronto_stesso_grado2(m( _, _, Vs), m( _, _, Vs2)).
+confronto_stesso_grado2(m( _, _, []), m( _, _, [])) :-
+	fail.
+confronto_stesso_grado2(m( _, _, []), m( _, _, Vs)) :-
+	Vs\=[].
+
+confronto_esponente(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
+	C @< C1.
+confronto_esponente(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
+	confronto_esponente(m( _, _, Vs), m( _, _, Vs1)).
+confronto_esponente(m( _, _, []), m( _, _, [])).
+
+confronto_esponente2(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
+	C @> C1.
+confronto_esponente2(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
+	confronto_esponente2(m( _, _, Vs), m( _, _, Vs1)).
+confronto_esponente2(m( _, _, []), m( _, _, [])).
+
+confronto_coefficiente(m(C, 0, []), m(C1, 0, [])) :-
+	C @=< C1.
+
+confronto_coefficiente2(m(C, 0, []), m(C1, 0, [])) :-
+	C @> C1.
+
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> origin/master
 ordina_monomio(m( A, B, []), m( A, B, [])).
 ordina_monomio(m( A, B, Vs), m( A, B, Zs)) :-
 	list_var(m(_, _, Vs), Vs1),

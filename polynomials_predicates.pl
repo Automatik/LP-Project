@@ -274,6 +274,7 @@ merge3([A | Ra],[B | Rb],[B | M]) :-
 	confronto_coefficiente2(A, B),
 	merge3([A | Ra], Rb, M).
 
+
 confronto_stesso_grado(m( _, _, [v( _, Var) | _]), m( _, _, [v( _, Var2) | _])) :-
 	Var @< Var2.
 confronto_stesso_grado(m( _, _, [v( _, Var) | Vs]), m( _, _, [v( _, Var) | Vs2])) :-
@@ -309,6 +310,7 @@ confronto_coefficiente(m(C, 0, []), m(C1, 0, [])) :-
 
 confronto_coefficiente2(m(C, 0, []), m(C1, 0, [])) :-
 	C @> C1.
+
 
 ordina_monomio(m( A, B, []), m( A, B, [])).
 ordina_monomio(m( A, B, Vs), m( A, B, Zs)) :-
