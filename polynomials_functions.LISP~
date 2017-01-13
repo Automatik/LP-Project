@@ -5,7 +5,7 @@
 (defun is-monomial (m)
   (and (listp m) ;controllo che sia scritto nella forma corretta (m coeff td vars-powers)
        (eq 'm (first m)) ;controllo che ci sia la lettera M
-       (numberp (second m))
+       (realp (second m))
        (let ((mtd (third m))
              (vps (fourth m)))
          (and (integerp mtd)
@@ -21,7 +21,7 @@
              (var (third vp)))
          (and (integerp power)
               (>= power 0)
-              (alpha-char-p (char (string var) 0)))))) ;symbolp non va bene. Trovare altro modo più snello
+              (alpha-char-p (coerce var 'character)))))) ;symbolp non va bene.
 
 ;; poly-monomials è per forza da fare?
 (defun is-polynomial (p)
@@ -112,7 +112,9 @@
           (vars (mapcar 'as-mony (cdr (cdr m)))))
       (if (and (not (null coeff)) ;se coeff non nullo e lista inizia con operatore *
                (eq '* (first m)))
-          (if (null (numberp coeff)) ;se il coeff è una variabile
+          (if (null (or (and (listp coeff) ;se il coeff è una variabile
+                              (eval coeff))
+                         (realp coeff))) 
               (if (null (cdr (cdr m))) ;se non c'è qualcosa dopo il coeff(var) nella lista
                   (list 'm 1 (sum-varpowers (list (as-mony coeff)) (as-mony coeff)))
                 (if (null (member nil vars)) ;se vars non contiene nessuna variabile scritta male(cioè valore NIL)
@@ -132,18 +134,19 @@
         nil))))
           
 (defun as-mony (m)
-  (cond ((numberp m) m) ;`('m 0 nil)
-        ((symbolp m) `(v 1 ,m))
+  (cond ((realp m) m) ;`('m 0 nil)
+        ((and (null (listp m))
+              (alpha-char-p (coerce m 'character))) `(v 1 ,m))
         ((and (listp m)
               (eq 'expt (first m))) (let ((var (second m))
                                           (exp (third m)))
-                                      (if (or (null (numberp exp))
-                                              (null (symbolp var)))
+                                      (if (or (null (integerp exp))
+                                              (null (alpha-char-p (coerce var 'character))))
                                           nil
                                         `(v ,exp ,var))))))
 
 (defun add-m (m)
-  (cond ((numberp m) (list 'm  m 0 nil)) ;se m è un numero
+  (cond ((realp m) (list 'm  m 0 nil)) ;se m è un numero
         ((and (listp m)              ;se m è una variabile
               (eq 'v (first m)))
          (list 'm 1 (second m) (list m)))))
@@ -311,7 +314,7 @@
 ;VariableValues è una lista anche nel caso di un solo valore? es ((v 1 x)) VV=3 o (3)?
 (defun polyval (p varvalues)
   (if (and (is-polynomial p)
-           (every #'numberp varvalues))
+           (every #'realp varvalues))
       (let ((vars (variables p)))
         (calcola (sostituisci (second p) vars varvalues)))
     nil))
