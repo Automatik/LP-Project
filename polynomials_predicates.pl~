@@ -4,7 +4,6 @@
 /*
  * PROBLEMI DA SISTEMARE:
  *
- * - Rappresentazioni dello zero: 0 è m(0, 0, []) o poly([])
  * - Nascondere dai risultati di somme, sottrazioni e moltiplicazioni
  * gli zeri
  * - Sommare o moltiplicare monomi simili: es x*x=x^2 o x+x=2x
@@ -97,6 +96,7 @@ list_degrees([m(C, Degree, V)| Ms], [Degree| Ds]) :-
 	is_monomial(m(C, Degree, V)),
 	list_degrees(Ms, Ds).
 
+max([], 0).
 max(List, Max) :-
 	List = [H| _],
 	accMax(List, H, Max).
@@ -108,6 +108,7 @@ accMax([H| T], Acc, Max) :-
 	H =< Acc,
 	accMax(T, Acc, Max).
 
+min([], 0).
 min(List, Min) :-
 	List = [H| _],
 	accMin(List, H, Min).
@@ -149,10 +150,11 @@ sum_power([X | Xs], [X | Ys]) :-
 
 monomials([], []).
 monomials(poly(X), Y) :-
-	list_power(X, X1),
-	sum_power(X1, X2),
+%	list_power(X, X1),
+%	sum_power(X1, X2),
 	ordina_monomi(X , M),
-	mergesort(X2, _, M, X3),
+%	mergesort(X2, _, M, X3),
+	sort(2, @=<, M, X3),
 	ordina_stesso_grado(X3, Y).
 
 ordina_stesso_grado(Ms, L) :-
@@ -179,7 +181,7 @@ estrai_monomi([m(_, TD, _) | Ms], G, Xs) :-
 	estrai_monomi(Ms, G, Xs).
 estrai_monomi([m(C, G, VP) | Ms], G, [m(C, G, VP) | Xs]) :-
 	estrai_monomi(Ms, G, Xs).
-
+/*
 mergesort([], [], [], []).
 mergesort([A], [A], [A1], [A1]).
 mergesort([A,B | R], S, [A1,B1 | R1], Z) :-
@@ -223,7 +225,7 @@ merge2([A | Ra], [B | Rb], [A | M], [A1 | Ra1], [B1 | Rb1], [A1 | M1]) :-
 merge2([A | Ra],[B | Rb],[B | M],[A1 | Ra1],[B1 | Rb1],[B1 | M1]) :-
 	A @> B,
 	merge2([A | Ra], Rb, M, [A1 | Ra1], Rb1, M1).
-
+*/
 mergesort3([], []).
 mergesort3([A], [A]).
 mergesort3([A,B | R], S) :-
@@ -274,12 +276,15 @@ merge3([A | Ra],[B | Rb],[B | M]) :-
 	confronto_coefficiente2(A, B),
 	merge3([A | Ra], Rb, M).
 
-<<<<<<< HEAD
-=======
+merge3([m(C, G, Vs) | Ra], [m(C1, G, Vs) | Rb], [m(C, G, Vs) | M]) :-
+	C @=< C1,
+	merge3(Ra,[m(C1, G, Vs) | Rb],M).
+
+merge3([m(C, G, Vs) | Ra],[m(C1, G, Vs) | Rb],[m(C1, G, Vs) | M]) :-
+	C @> C1,
+	merge3([m(C, G, Vs) | Ra], Rb, M).
 
 
-
->>>>>>> origin/master
 confronto_stesso_grado(m( _, _, [v( _, Var) | _]), m( _, _, [v( _, Var2) | _])) :-
 	Var @< Var2.
 confronto_stesso_grado(m( _, _, [v( _, Var) | Vs]), m( _, _, [v( _, Var) | Vs2])) :-
@@ -302,13 +307,15 @@ confronto_esponente(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
 	C @< C1.
 confronto_esponente(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
 	confronto_esponente(m( _, _, Vs), m( _, _, Vs1)).
-confronto_esponente(m( _, _, []), m( _, _, [])).
+confronto_esponente(m( _, _, []), m( _, _, [])) :-
+	fail.
 
 confronto_esponente2(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
 	C @> C1.
 confronto_esponente2(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
 	confronto_esponente2(m( _, _, Vs), m( _, _, Vs1)).
-confronto_esponente2(m( _, _, []), m( _, _, [])).
+confronto_esponente2(m( _, _, []), m( _, _, [])) :-
+	fail.
 
 confronto_coefficiente(m(C, 0, []), m(C1, 0, [])) :-
 	C @=< C1.
@@ -316,15 +323,12 @@ confronto_coefficiente(m(C, 0, []), m(C1, 0, [])) :-
 confronto_coefficiente2(m(C, 0, []), m(C1, 0, [])) :-
 	C @> C1.
 
-<<<<<<< HEAD
-=======
 
-
->>>>>>> origin/master
 ordina_monomio(m( A, B, []), m( A, B, [])).
 ordina_monomio(m( A, B, Vs), m( A, B, Zs)) :-
-	list_var(m(_, _, Vs), Vs1),
-	mergesort2(Vs1, _, Vs, Zs).
+	%list_var(m(_, _, Vs), Vs1),
+	%mergesort2(Vs1, _, Vs, Zs).
+	sort(2, @=<, Vs, Zs).
 
 ordina_monomi([], []).
 ordina_monomi([X | Xs], [Y | Ys]) :-
@@ -351,8 +355,11 @@ polyplus(Poly1, Poly2, poly(Result)) :-
 	monomials(Poly1, Ms1),
 	monomials(Poly2, Ms2),
 	append(Ms1, Ms2, Ms),
-	dividi(Ms, SML),
-	sumLists(SML, Result). %ORDINARE PRIMA DI RESTITUIRLO
+	compress(Ms, SML),
+	monomials(poly(SML), Result).
+	%compressVars(Ms, Mss),
+	%dividi(Mss, SML),
+	%sumLists(SML, Result). %ORDINARE PRIMA DI RESTITUIRLO
 polyplus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
@@ -367,8 +374,11 @@ polyminus(Poly1, Poly2, poly(Result)) :-
 	monomials(Poly2, Ms2),
 	negateMonomials(Ms2, NegMs2),
 	append(Ms1, NegMs2, Ms),
-	dividi(Ms, SML),
-	sumLists(SML, Result).
+	compress(Ms, SML),
+	monomials(poly(SML), Result).
+	%compressVars(Ms, Mss),
+	%dividi(Mss, SML),
+	%sumLists(SML, Result).
 polyminus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
@@ -380,8 +390,11 @@ polytimes(Poly1, Poly2, poly(Result)) :-
 	is_polynomial(Poly2),
 	multiplicatePolynomials(Poly1, Poly2, MML),
 	monomials(poly(MML), Ms),
-	dividi(Ms, SML),
-	sumLists(SML, Result).
+	compress(Ms, SML),
+	monomials(poly(SML), Result).
+	%compressVars(Ms, Mss),
+	%dividi(Mss, SML),
+	%sumLists(SML, Result).
 polytimes(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
@@ -394,6 +407,7 @@ multiplicatePolynomials(poly(Ms1), poly(Ms2), MML) :-
 	accMultiplicatePolynomials(Ms1, Ms2, MML).
 accMultiplicatePolynomials([], [], []).
 accMultiplicatePolynomials(_, [], []).
+accMultiplicatePolynomials([], _, []).
 %accMultiplicatePolynomials(_, [], L, L) :- is_list(L).
 accMultiplicatePolynomials([X| Xs], [Y| Ys], Ms) :-
 	multiplicateMonomials([X| Xs], Y, Z),
@@ -444,6 +458,31 @@ sumPowers([v(P1, V)| Vs], v(P, V)) :-
 	sumPowers(Vs, v(P2, V)),
 	P is P1+P2.
 
+compressVars([], []).
+compressVars([M| Ms], [M1| Ms1]) :-
+	compressVars(M, M1),
+	compressVars(Ms, Ms1).
+compressVars(m(C, TD, Vs), m(C, TD, Vs1)) :-
+	dividi(Vs, X),
+	sumLists(X, Vs1).
+
+%Ordinare i monomi prima di usare questo predicato
+compress([], []).
+compress(Ms, Ms1) :-
+	compressVars(Ms, Xs),
+	dividi(Xs, Ys),
+	sumLists(Ys, Zs),
+	removeZeros(Zs, Ms1).
+
+% Rimuove i monomi con coefficiente zero e elimina le variabili di
+% quelli con TD=0
+removeZeros([], []).
+removeZeros([m(0, _, _)| Xs], Ys) :-
+	removeZeros(Xs, Ys).
+removeZeros([m(C, 0, _)| Xs], [m(C, 0, [])| Ys]) :-
+	removeZeros(Xs, Ys).
+removeZeros([M| Xs], [M| Ys]) :-
+	removeZeros(Xs, Ys).
 
 %Ms lista di monomi ordinati
 dividi(Ms, SimilarMonomialsList) :-
@@ -465,6 +504,7 @@ accDividi([M| Ms], Xs, L) :-
 	append(Ys, [NewSubList], Zs),
 	accDividi(Ms, Zs, L).
 
+
 % presente(monomio, lista monomi simili, in quale sublist se è presente)
 presente(_, [], []) :- fail.
 presente(m(_, TD1, VP1), [SL| _], SL) :-
@@ -474,6 +514,12 @@ presente(m(_, TD1, VP1), [SL| _], SL) :-
 presente(M, [_| SLs], WhichSL) :-
 	is_list(SLs),
 	presente(M, SLs, WhichSL).
+%Per le variabili
+presente(v(_, V), [SL| _], SL) :-
+	SL = [v(_, V)| _].
+presente(V, [_| SLs], WhichSL) :-
+	is_list(SLs),
+	presente(V, SLs, WhichSL).
 
 %Somma le liste di monomi simili interne alla lista
 sumLists(SimilarMonomialsList, SummedMonomialsList) :-
@@ -485,6 +531,11 @@ accSumLists([SubList| SLs], Xs, SML) :-
 	sumMonomials(SubList, SummedSL),
 	append(Xs, [SummedSL], Ys),
 	accSumLists(SLs, Ys, SML).
+%Per le variabili
+accSumLists([SubList| SLs], Xs, SVL) :-
+	sumPowers(SubList, SummedSL),
+	append(Xs, [SummedSL], Ys),
+	accSumLists(SLs, Ys, SVL).
 
 sumMonomials([], m(0, _, _)).
 sumMonomials([m(C1, TD, VP)| Ms], MonomialResult) :-
@@ -654,22 +705,32 @@ as_mony(E, m(0, 0, [])) :-
 	as_mony(V1, m(C, _, _)),
 	C is 0.
 
-
+%CASO GENERALE
+as_polynomial(E, poly(Ms)) :-
+	as_poly(E, poly(Xs)),
+	monomials(poly(Xs), Ys),
+	compress(Ys, Zs),
+	monomials(poly(Zs), Ms).
+%Caso zero
+as_poly(E, poly([])) :-
+	as_monomial(E, m(0, 0, [])).
 %Solo monomio
-as_polynomial(E, poly([M])) :-
-	as_monomial(E, M).
-as_polynomial(E, poly(Monomials)) :-
+as_poly(E, poly([M])) :-
+	as_monomial(E, M),
+	M \= m(0, 0, []).
+as_poly(E, poly(Monomials)) :-
 	E = M1+M2,
-	as_polynomial(M2, poly(M)),
-	as_polynomial(M1, poly(Ms)),
-        append(M, Ms, Ms2),
-	monomials(poly(Ms2), Monomials).
-as_polynomial(E, poly(Monomials)) :-
+	as_poly(M2, poly(M)),
+	as_poly(M1, poly(Ms)),
+        append(M, Ms, Monomials).
+	%monomials(poly(Ms2), Monomials).
+as_poly(E, poly(Monomials)) :-
 	E = M1-M2,
-	as_polynomial(-M2, poly(M)),
-	as_polynomial(M1, poly(Ms)),
-	append(M, Ms, Ms2),
-	monomials(poly(Ms2), Monomials).
+	as_poly(-M2, poly(M)),
+	as_poly(M1, poly(Ms)),
+	append(M, Ms, Monomials).
+	%monomials(poly(Ms2), Monomials).
+
 
 %CASO GENERALE, per controllo che sia un polinomio
 pprint_polynomial(Poly) :-

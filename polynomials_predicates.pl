@@ -4,13 +4,8 @@
 /*
  * PROBLEMI DA SISTEMARE:
  *
- * - Rappresentazioni dello zero: 0 è m(0, 0, []) o poly([])
- * - Nascondere dai risultati di somme, sottrazioni e moltiplicazioni
- * gli zeri
- * - Sommare o moltiplicare monomi simili: es x*x=x^2 o x+x=2x
- * - Ordinamento non perfetto
+ * - Ordinamento
  * - Snellire codice, unire eventuali funzioni duplicate
- * - Ordinare risultati di polyplus, minus e times
  * - Il grado di un monomio o una variabile deve essere per forza
  * positivo? E' stato messo >=0 ma potrebbe funzionare anche se negativi
  * */
@@ -97,6 +92,7 @@ list_degrees([m(C, Degree, V)| Ms], [Degree| Ds]) :-
 	is_monomial(m(C, Degree, V)),
 	list_degrees(Ms, Ds).
 
+max([], 0).
 max(List, Max) :-
 	List = [H| _],
 	accMax(List, H, Max).
@@ -108,6 +104,7 @@ accMax([H| T], Acc, Max) :-
 	H =< Acc,
 	accMax(T, Acc, Max).
 
+min([], 0).
 min(List, Min) :-
 	List = [H| _],
 	accMin(List, H, Min).
@@ -354,8 +351,11 @@ polyplus(Poly1, Poly2, poly(Result)) :-
 	monomials(Poly1, Ms1),
 	monomials(Poly2, Ms2),
 	append(Ms1, Ms2, Ms),
-	dividi(Ms, SML),
-	sumLists(SML, Result). %ORDINARE PRIMA DI RESTITUIRLO
+	compress(Ms, SML),
+	monomials(poly(SML), Result).
+	%compressVars(Ms, Mss),
+	%dividi(Mss, SML),
+	%sumLists(SML, Result). %ORDINARE PRIMA DI RESTITUIRLO
 polyplus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
@@ -370,8 +370,11 @@ polyminus(Poly1, Poly2, poly(Result)) :-
 	monomials(Poly2, Ms2),
 	negateMonomials(Ms2, NegMs2),
 	append(Ms1, NegMs2, Ms),
-	dividi(Ms, SML),
-	sumLists(SML, Result).
+	compress(Ms, SML),
+	monomials(poly(SML), Result).
+	%compressVars(Ms, Mss),
+	%dividi(Mss, SML),
+	%sumLists(SML, Result).
 polyminus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
@@ -383,8 +386,11 @@ polytimes(Poly1, Poly2, poly(Result)) :-
 	is_polynomial(Poly2),
 	multiplicatePolynomials(Poly1, Poly2, MML),
 	monomials(poly(MML), Ms),
-	dividi(Ms, SML),
-	sumLists(SML, Result).
+	compress(Ms, SML),
+	monomials(poly(SML), Result).
+	%compressVars(Ms, Mss),
+	%dividi(Mss, SML),
+	%sumLists(SML, Result).
 polytimes(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
@@ -397,6 +403,7 @@ multiplicatePolynomials(poly(Ms1), poly(Ms2), MML) :-
 	accMultiplicatePolynomials(Ms1, Ms2, MML).
 accMultiplicatePolynomials([], [], []).
 accMultiplicatePolynomials(_, [], []).
+accMultiplicatePolynomials([], _, []).
 %accMultiplicatePolynomials(_, [], L, L) :- is_list(L).
 accMultiplicatePolynomials([X| Xs], [Y| Ys], Ms) :-
 	multiplicateMonomials([X| Xs], Y, Z),
@@ -447,6 +454,31 @@ sumPowers([v(P1, V)| Vs], v(P, V)) :-
 	sumPowers(Vs, v(P2, V)),
 	P is P1+P2.
 
+compressVars([], []).
+compressVars([M| Ms], [M1| Ms1]) :-
+	compressVars(M, M1),
+	compressVars(Ms, Ms1).
+compressVars(m(C, TD, Vs), m(C, TD, Vs1)) :-
+	dividi(Vs, X),
+	sumLists(X, Vs1).
+
+%Ordinare i monomi prima di usare questo predicato
+compress([], []).
+compress(Ms, Ms1) :-
+	compressVars(Ms, Xs),
+	dividi(Xs, Ys),
+	sumLists(Ys, Zs),
+	removeZeros(Zs, Ms1).
+
+% Rimuove i monomi con coefficiente zero e elimina le variabili di
+% quelli con TD=0
+removeZeros([], []).
+removeZeros([m(0, _, _)| Xs], Ys) :-
+	removeZeros(Xs, Ys).
+removeZeros([m(C, 0, _)| Xs], [m(C, 0, [])| Ys]) :-
+	removeZeros(Xs, Ys).
+removeZeros([M| Xs], [M| Ys]) :-
+	removeZeros(Xs, Ys).
 
 %Ms lista di monomi ordinati
 dividi(Ms, SimilarMonomialsList) :-
@@ -468,6 +500,7 @@ accDividi([M| Ms], Xs, L) :-
 	append(Ys, [NewSubList], Zs),
 	accDividi(Ms, Zs, L).
 
+
 % presente(monomio, lista monomi simili, in quale sublist se è presente)
 presente(_, [], []) :- fail.
 presente(m(_, TD1, VP1), [SL| _], SL) :-
@@ -477,6 +510,12 @@ presente(m(_, TD1, VP1), [SL| _], SL) :-
 presente(M, [_| SLs], WhichSL) :-
 	is_list(SLs),
 	presente(M, SLs, WhichSL).
+%Per le variabili
+presente(v(_, V), [SL| _], SL) :-
+	SL = [v(_, V)| _].
+presente(V, [_| SLs], WhichSL) :-
+	is_list(SLs),
+	presente(V, SLs, WhichSL).
 
 %Somma le liste di monomi simili interne alla lista
 sumLists(SimilarMonomialsList, SummedMonomialsList) :-
@@ -488,6 +527,11 @@ accSumLists([SubList| SLs], Xs, SML) :-
 	sumMonomials(SubList, SummedSL),
 	append(Xs, [SummedSL], Ys),
 	accSumLists(SLs, Ys, SML).
+%Per le variabili
+accSumLists([SubList| SLs], Xs, SVL) :-
+	sumPowers(SubList, SummedSL),
+	append(Xs, [SummedSL], Ys),
+	accSumLists(SLs, Ys, SVL).
 
 sumMonomials([], m(0, _, _)).
 sumMonomials([m(C1, TD, VP)| Ms], MonomialResult) :-
@@ -657,22 +701,32 @@ as_mony(E, m(0, 0, [])) :-
 	as_mony(V1, m(C, _, _)),
 	C is 0.
 
-
+%CASO GENERALE
+as_polynomial(E, poly(Ms)) :-
+	as_poly(E, poly(Xs)),
+	monomials(poly(Xs), Ys),
+	compress(Ys, Zs),
+	monomials(poly(Zs), Ms).
+%Caso zero
+as_poly(E, poly([])) :-
+	as_monomial(E, m(0, 0, [])).
 %Solo monomio
-as_polynomial(E, poly([M])) :-
-	as_monomial(E, M).
-as_polynomial(E, poly(Monomials)) :-
+as_poly(E, poly([M])) :-
+	as_monomial(E, M),
+	M \= m(0, 0, []).
+as_poly(E, poly(Monomials)) :-
 	E = M1+M2,
-	as_polynomial(M2, poly(M)),
-	as_polynomial(M1, poly(Ms)),
-        append(M, Ms, Ms2),
-	monomials(poly(Ms2), Monomials).
-as_polynomial(E, poly(Monomials)) :-
+	as_poly(M2, poly(M)),
+	as_poly(M1, poly(Ms)),
+        append(M, Ms, Monomials).
+	%monomials(poly(Ms2), Monomials).
+as_poly(E, poly(Monomials)) :-
 	E = M1-M2,
-	as_polynomial(-M2, poly(M)),
-	as_polynomial(M1, poly(Ms)),
-	append(M, Ms, Ms2),
-	monomials(poly(Ms2), Monomials).
+	as_poly(-M2, poly(M)),
+	as_poly(M1, poly(Ms)),
+	append(M, Ms, Monomials).
+	%monomials(poly(Ms2), Monomials).
+
 
 %CASO GENERALE, per controllo che sia un polinomio
 pprint_polynomial(Poly) :-
