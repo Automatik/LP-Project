@@ -472,6 +472,16 @@
 (defun _merge3 (lst-a lst-b)
   (cond ((not lst-a) lst-b)
         ((not lst-b) lst-a)
+        ((and (eq (third (car lst-a)) 0) (< (second (car lst-a)) (second (car lst-b))))
+         (cons (car lst-a) (_merge3 (cdr lst-a) lst-b)))
+        ((and (eq (third (car lst-a)) 0) (> (second (car lst-a)) (second (car lst-b))))
+         (cons (car lst-b) (_merge3 lst-a (cdr lst-b))))
+        
+        ((and (confronto-liste (fourth (car lst-a)) (fourth (car lst-b))) (< (second (car lst-a)) (second (car lst-b))))
+         (cons (car lst-a) (_merge3 (cdr lst-a) lst-b)))
+        ((and (confronto-liste (fourth (car lst-a)) (fourth (car lst-b))) (> (second (car lst-a)) (second (car lst-b))))
+         (cons (car lst-b) (_merge3 lst-a (cdr lst-b))))
+
         ((paragona-var-powers (fourth (car lst-a)) (fourth (car lst-b)))  (cons (car lst-a) (_merge3 (cdr lst-a) lst-b)))
         (T (cons (car lst-b) (_merge3 lst-a (cdr lst-b))))))
 
