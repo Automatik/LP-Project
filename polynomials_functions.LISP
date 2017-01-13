@@ -5,7 +5,7 @@
 (defun is-monomial (m)
   (and (listp m) ;controllo che sia scritto nella forma corretta (m coeff td vars-powers)
        (eq 'm (first m)) ;controllo che ci sia la lettera M
-       (numberp (second m))
+       (numberp (parse-coefficient (second m)))
        (let ((mtd (third m))
              (vps (fourth m)))
          (and (integerp mtd)
@@ -373,7 +373,8 @@
 (defun monomials (p)
   (if (null (is-polynomial p))
       nil
-    (append (list 'poly) (list (ordina-stesso-grado (ordina-monomi (mergesort (second p))) (mindegree p)))))) 
+    (let ((p1 (ordina-stesso-grado (ordina-monomi (mergesort (second p))) (mindegree p))))
+      (append (list 'poly) (list (parse-polynomial p1))))))
   
 
 (defun list-head (lst n) (if (eq n 0) '() (cons (car lst) (list-head (cdr lst) (- n 1)))))
@@ -430,22 +431,22 @@
 (defun pprint-polynomial (p) 
   (if (null (is-polynomial p))
       nil
-    (format t "~s" (print-monomials (second p)))))
+    (format t "~s" (subseq (print-monomials (second p)) 1))))
 
 (defun print-monomials (ms) 
   (if (listp ms)
       (if (not (null ms))
-          (let ((c (monomial-coefficient (first ms)))
+          (let ((c (parse-coefficient (monomial-coefficient (first ms))))
                 (vs (varpowers (first ms))))
-            (cond ((> c 1) (concatenate 'string "+" (write-to-string c) " "
+            (cond ((and (> c 0) (not (eq c 1))) (concatenate 'string " +" (write-to-string c) " "
+                                                             (print-vars vs)
+                                                             (print-monomials (rest ms))))
+                  ((< c 0) (concatenate 'string " " (write-to-string  c) " "
                                         (print-vars vs)
                                         (print-monomials (rest ms))))
-                  ((< c 0) (concatenate 'string (write-to-string c) " "
-                                        (print-vars vs)
-                                        (print-monomials (rest ms))))
-                  ((eq c 1) (concatenate 'string  " +"
-                                        (print-vars vs)
-                                        (print-monomials (rest ms))))))
+                  ((eq c 1) (concatenate 'string  " + "
+                                         (print-vars vs)
+                                         (print-monomials (rest ms))))))
             ;(format t " ~d" c)
             ;(print-vars vs)
             ;(print-monomials (rest ms)))
@@ -458,9 +459,13 @@
       (if (not (null vs))  
                        (let ((power (second (first vs)))
                              (var (third (first vs))))
-                         (cond ((eq power 1) (concatenate 'string (string var) " "))
+                         (cond 
                                ;((> power 1) (format t " ~s ^ ~d" var power))
                                ;((< power 0) (format t " ~s ^(- ~d)" var power))))
+                               ((and (eq power 1) (null (rest vs)) (concatenate 'string (string var) (print-vars (rest vs)))))
+                               ((and (> power 1) (null (rest vs))) (concatenate 'string (string var)  "^" (write-to-string power) (print-vars (rest vs))))
+                               ((and (< power 0) (null (rest vs))) (concatenate 'string (string var)  "^ -(" (write-to-string power) ")"(print-vars (rest vs))))
+                               ((eq power 1) (concatenate 'string (string var) " " (print-vars (rest vs))))
                                ((> power 1) (concatenate 'string (string var)  "^" (write-to-string power) " " (print-vars (rest vs))))
                                ((< power 0) (concatenate 'string (string var)  "^ -(" (write-to-string power) ") "(print-vars (rest vs))))))
           nil)
@@ -486,9 +491,9 @@
         ((and (eq (third (car lst-a)) 0) (> (second (car lst-a)) (second (car lst-b))))
          (cons (car lst-b) (_merge3 lst-a (cdr lst-b))))
         
-        ((and (confronto-liste (fourth (car lst-a)) (fourth (car lst-b))) (< (second (car lst-a)) (second (car lst-b))))
+        ((and (same-varpowers lst-a lst-b)  (< (parse-coefficient (second (car lst-a))) (parse-coefficient (second (car lst-b)))))
          (cons (car lst-a) (_merge3 (cdr lst-a) lst-b)))
-        ((and (confronto-liste (fourth (car lst-a)) (fourth (car lst-b))) (> (second (car lst-a)) (second (car lst-b))))
+        ((and (same-varpowers lst-a lst-b)  (> (parse-coefficient (second (car lst-a))) (parse-coefficient (second (car lst-b)))))
          (cons (car lst-b) (_merge3 lst-a (cdr lst-b))))
 
         ((paragona-var-powers (fourth (car lst-a)) (fourth (car lst-b)))  (cons (car lst-a) (_merge3 (cdr lst-a) lst-b)))
@@ -535,5 +540,26 @@
             (T nil))
     nil))
              
-         
+(defun lista-gradi (vps) 
+  (if (null vps)
+      nil
+    (flatten (list (second (first vps)) (lista-gradi (rest vps))))))
+
+(defun same-varpowers (a b)
+  (if (and (confronto-liste (var-symbols (fourth (car a))) (var-symbols (fourth (car b)))) 
+           (confronto-liste (lista-gradi (fourth (car a))) (lista-gradi (fourth (car b)))))
+      T
+    nil))
+
+;funzione da aggiungere ad altri metodi, in caso viene inserito nel coefficiente (cos n)
+;Non accetta il poly, passare sempre (second p)
+(defun parse-polynomial (p) 
+  (if (null (is-monomial (car p)))
+      nil
+    (let ((m (car p)))
+      (append  (list (list (first m) (parse-coefficient (second m)) (third m) (fourth m))) (parse-polynomial (rest p))))))
+          
+          
+      
+      
          
