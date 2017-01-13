@@ -149,10 +149,11 @@ sum_power([X | Xs], [X | Ys]) :-
 
 monomials([], []).
 monomials(poly(X), Y) :-
-	list_power(X, X1),
-	sum_power(X1, X2),
+%	list_power(X, X1),
+%	sum_power(X1, X2),
 	ordina_monomi(X , M),
-	mergesort(X2, _, M, X3),
+%	mergesort(X2, _, M, X3),
+	sort(2, @=<, M, X3),
 	ordina_stesso_grado(X3, Y).
 
 ordina_stesso_grado(Ms, L) :-
@@ -179,7 +180,7 @@ estrai_monomi([m(_, TD, _) | Ms], G, Xs) :-
 	estrai_monomi(Ms, G, Xs).
 estrai_monomi([m(C, G, VP) | Ms], G, [m(C, G, VP) | Xs]) :-
 	estrai_monomi(Ms, G, Xs).
-
+/*
 mergesort([], [], [], []).
 mergesort([A], [A], [A1], [A1]).
 mergesort([A,B | R], S, [A1,B1 | R1], Z) :-
@@ -223,7 +224,7 @@ merge2([A | Ra], [B | Rb], [A | M], [A1 | Ra1], [B1 | Rb1], [A1 | M1]) :-
 merge2([A | Ra],[B | Rb],[B | M],[A1 | Ra1],[B1 | Rb1],[B1 | M1]) :-
 	A @> B,
 	merge2([A | Ra], Rb, M, [A1 | Ra1], Rb1, M1).
-
+*/
 mergesort3([], []).
 mergesort3([A], [A]).
 mergesort3([A,B | R], S) :-
@@ -274,6 +275,14 @@ merge3([A | Ra],[B | Rb],[B | M]) :-
 	confronto_coefficiente2(A, B),
 	merge3([A | Ra], Rb, M).
 
+merge3([m(C, G, Vs) | Ra], [m(C1, G, Vs) | Rb], [m(C, G, Vs) | M]) :-
+	C @=< C1,
+	merge3(Ra,[m(C1, G, Vs) | Rb],M).
+
+merge3([m(C, G, Vs) | Ra],[m(C1, G, Vs) | Rb],[m(C1, G, Vs) | M]) :-
+	C @> C1,
+	merge3([m(C, G, Vs) | Ra], Rb, M).
+
 
 confronto_stesso_grado(m( _, _, [v( _, Var) | _]), m( _, _, [v( _, Var2) | _])) :-
 	Var @< Var2.
@@ -297,13 +306,15 @@ confronto_esponente(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
 	C @< C1.
 confronto_esponente(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
 	confronto_esponente(m( _, _, Vs), m( _, _, Vs1)).
-confronto_esponente(m( _, _, []), m( _, _, [])).
+confronto_esponente(m( _, _, []), m( _, _, [])) :-
+	fail.
 
 confronto_esponente2(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
 	C @> C1.
 confronto_esponente2(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
 	confronto_esponente2(m( _, _, Vs), m( _, _, Vs1)).
-confronto_esponente2(m( _, _, []), m( _, _, [])).
+confronto_esponente2(m( _, _, []), m( _, _, [])) :-
+	fail.
 
 confronto_coefficiente(m(C, 0, []), m(C1, 0, [])) :-
 	C @=< C1.
@@ -314,8 +325,9 @@ confronto_coefficiente2(m(C, 0, []), m(C1, 0, [])) :-
 
 ordina_monomio(m( A, B, []), m( A, B, [])).
 ordina_monomio(m( A, B, Vs), m( A, B, Zs)) :-
-	list_var(m(_, _, Vs), Vs1),
-	mergesort2(Vs1, _, Vs, Zs).
+	%list_var(m(_, _, Vs), Vs1),
+	%mergesort2(Vs1, _, Vs, Zs).
+	sort(2, @=<, Vs, Zs).
 
 ordina_monomi([], []).
 ordina_monomi([X | Xs], [Y | Ys]) :-
