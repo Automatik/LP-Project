@@ -4,7 +4,6 @@
 /*
  * PROBLEMI DA SISTEMARE:
  *
- * - Ordinamento
  * - Snellire codice, unire eventuali funzioni duplicate
  * - Il grado di un monomio o una variabile deve essere per forza
  * positivo? E' stato messo >=0 ma potrebbe funzionare anche se negativi
@@ -148,7 +147,8 @@ monomials([], []).
 monomials(poly(X), Y) :-
 %	list_power(X, X1),
 %	sum_power(X1, X2),
-	ordina_monomi(X , M),
+	parse_polynomial(poly(X),poly(X1)),
+	ordina_monomi(X1 , M),
 %	mergesort(X2, _, M, X3),
 	sort(2, @=<, M, X3),
 	ordina_stesso_grado(X3, Y).
@@ -346,10 +346,12 @@ list_var(m( _, _, [v(_, Vs) | Zs ]),  [Vs | Ys] ) :-
 
 %In caso siano espressioni
 polyplus(Poly1, Poly2, poly(Result)) :-
-	is_polynomial(Poly1),
-	is_polynomial(Poly2),
-	monomials(Poly1, Ms1),
-	monomials(Poly2, Ms2),
+	parse_polynomial(Poly1, Poly1p),
+	parse_polynomial(Poly2, Poly2p),
+	is_polynomial(Poly1p),
+	is_polynomial(Poly2p),
+	monomials(Poly1p, Ms1),
+	monomials(Poly2p, Ms2),
 	append(Ms1, Ms2, Ms),
 	compress(Ms, SML),
 	monomials(poly(SML), Result).
@@ -364,10 +366,12 @@ polyplus(Poly1, Poly2, Result) :-
 
 %polyminus, fare Poly1+(-Poly2)
 polyminus(Poly1, Poly2, poly(Result)) :-
-	is_polynomial(Poly1),
-	is_polynomial(Poly2),
-	monomials(Poly1, Ms1),
-	monomials(Poly2, Ms2),
+	parse_polynomial(Poly1, Poly1p),
+	parse_polynomial(Poly2, Poly2p),
+	is_polynomial(Poly1p),
+	is_polynomial(Poly2p),
+	monomials(Poly1p, Ms1),
+	monomials(Poly2p, Ms2),
 	negateMonomials(Ms2, NegMs2),
 	append(Ms1, NegMs2, Ms),
 	compress(Ms, SML),
@@ -382,9 +386,11 @@ polyminus(Poly1, Poly2, Result) :-
 
 
 polytimes(Poly1, Poly2, poly(Result)) :-
-	is_polynomial(Poly1),
-	is_polynomial(Poly2),
-	multiplicatePolynomials(Poly1, Poly2, MML),
+	parse_polynomial(Poly1, Poly1p),
+	parse_polynomial(Poly2, Poly2p),
+	is_polynomial(Poly1p),
+	is_polynomial(Poly2p),
+	multiplicatePolynomials(Poly1p, Poly2p, MML),
 	monomials(poly(MML), Ms),
 	compress(Ms, SML),
 	monomials(poly(SML), Result).
@@ -817,6 +823,15 @@ pprint_poly(poly([m([], _, []) | Ps])) :-
 
 pprint_poly(poly([])) :-
 	fail.
+
+parse_polynomial(poly([m(C, G, Vps) | Ms]), poly([m(C1, G, Vps) | Ms1])) :-
+	arithmetic_expression_value(C, C1),
+	parse_polynomial(poly(Ms), poly(Ms1)).
+
+parse_polynomial(poly([m(C, G, Vps)]), poly([m(C1, G, Vps)])) :-
+	arithmetic_expression_value(C, C1).
+
+parse_polynomial(poly([]), poly([])).
 
 
 
