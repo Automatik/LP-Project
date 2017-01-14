@@ -118,20 +118,22 @@
                (eq '* (first m)))
           (if (null (numberp coeff)) ;se il coeff è una variabile
               (if (null (cdr (cdr m))) ;se non c'è qualcosa dopo il coeff(var) nella lista
-                  (list 'm 1 (sum-varpowers (list (as-mony coeff))) (list (as-mony coeff)))
+                  (multiplicate-single-monomial 
+                   (list 'm 1 (sum-varpowers (list (as-mony coeff))) (list (as-mony coeff)))) ;
                 (if (null (member nil vars)) ;se vars non contiene nessuna variabile scritta male(cioè valore NIL)
-                    (list 'm
-                          1
-                          (sum-varpowers (append (list (as-mony coeff)) vars))
-                          (append (list (as-mony coeff)) vars))
+                    (multiplicate-single-monomial 
+                                                   (list 'm
+                                                         1
+                                                         (sum-varpowers (append (list (as-mony coeff)) vars)) ;
+                                                         (append (list (as-mony coeff)) vars)))
                   nil))
             (if (null (cdr (cdr m))) ;se non c'è qualcosa dopo il coeff(num) nella lista
-                (list 'm coeff 0 nil)
+                (list 'm coeff 0 nil) 
               (if (null (member nil vars)) ;se vars non contiene nessuna variabile scritta male(cioè valore NIL)
-                  (list 'm
-                        coeff
-                        (sum-varpowers vars)
-                        vars)
+                  (multiplicate-single-monomial (list 'm
+                                                      coeff
+                                                      (sum-varpowers vars) ;
+                                                      vars))
                 nil)))
         nil))))
           
@@ -165,12 +167,12 @@
         ((and (listp p)
               (or (eq 'expt (first p))
                   (eq '* (first p))))
-         (list 'poly (list (as-monomial p))))
+         (polyplus (monomials (list 'poly (list (as-monomial p)))) '(poly())))
         ((or (eq '+ (first p))
              (eq '- (first p)))
          (let ((ms (cdr p)))
-           (list 'poly
-                 (mapcar 'as-monomial ms))))))
+           (polyplus (monomials (list 'poly
+                                      (mapcar 'as-monomial ms))) '(poly()))))))
     
 (defun polyplus (p1 p2)
   (if (and (is-polynomial p1)
@@ -221,6 +223,20 @@
                   (multiplicate-monomials (rest ms) m))
         nil)
     nil))
+
+(defun multiplicate-vars (vs) 
+  (if (null vs) 
+      nil
+    (if (eq (third (first vs)) (third (second vs)))
+        (multiplicate-vars (append (list `(V ,(+ (second (first vs)) (second (second vs))) ,(third (first vs)))) (rest (rest vs))))
+      (append (list (first vs)) (multiplicate-vars (rest vs))))))
+
+(defun multiplicate-single-monomial (m)
+  (if (null (is-monomial m))
+      nil
+    (append `(M ,(second m) ,(third m) ,(multiplicate-vars (mergesort2 (fourth m)))))))
+      
+      
 
 (defun sum-variables (vs1 vs2)
   (if (and (listp vs1)
