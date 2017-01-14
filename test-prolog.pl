@@ -3,7 +3,7 @@
 test_coefficients() :-
 	coefficients(y^0, [1]),
 	coefficients(0*x-3, [-3]), %coefficiente nullo, si può sorvolare
-	coefficients(-y*x+y, [-1, 1]),
+	coefficients(-y*x+y, [1, -1]),
 	coefficients(0*x, []), %coeff nullo
 	coefficients(poly([m(-3, 0, []), m(-4, 1, [v(1, x)])]), [-3, -4]),
 	coefficients(m(-1, 1, [v(1, x)]), [-1]),
@@ -15,7 +15,7 @@ test_variables() :-
 	variables(x^0, []), %grado 0
 	variables(x+y^2, [x, y]),
 	variables(3*b-a, [a, b]),
-	variables(m(1, 0, []), []),
+	variables(poly([m(1, 0, [])]), []),
 	variables(poly([m(-3, 0, []), m(-4, 1, [v(1, x)])]), [x]).
 
 test_monomials() :-
@@ -45,8 +45,8 @@ test_polyplus() :-
 	polyplus(a+c^3, a^0, poly([m(1, 0, []), m(1, 1, [v(1, a)]), m(1, 3, [v(3, c)])])),
 	polyplus(x^0, 3*x^0, poly([m(4, 0, [])])),
 	polyplus(3, 5, poly([m(8, 0, [])])),
-	polyplus(m(-1, 1, [v(1, x)]), 3 * x, poly([m(2, 1, [v(1, x)])])),
-	polyplus(poly([m(1, 2, [v(1, a), v(1, b)])]), m(1, 2, [v(1, a), v(1, b)]), poly([m(2, 2, [v(1, a), v(1, b)])])).
+	polyplus(poly([m(-1, 1, [v(1, x)])]), poly([m(3, 1, [v(1, x)])]), poly([m(2, 1, [v(1, x)])])),
+	polyplus(poly([m(1, 2, [v(1, a), v(1, b)])]), poly([m(1, 2, [v(1, a), v(1, b)])]), poly([m(2, 2, [v(1, a), v(1, b)])])).
 
 test_polyminus() :-
 	polyminus(a^3, 3*b, poly([m(-3, 1, [v(1, b)]), m(1, 3, [v(3, a)])])),
@@ -54,8 +54,8 @@ test_polyminus() :-
 	polyminus(a + c ^ 3, a ^ 0, poly([m(-1, 0, []), m(1, 1, [v(1, a)]), m(1, 3, [v(3, c)])])),
 	polyminus(x ^ 0, 3 *x ^ 0, poly([m(-2, 0, [])])),
 	polyminus(3, 5, poly([m(-2, 0, [])])),
-	polyminus(m(-1, 1, [v(1, x)]), 3 * x, poly([m(-4, 1, [v(1, x)])])),
-	polyminus(poly([m(1, 2, [v(1, a), v(1, b)])]), m(1, 2, [v(1, a), v(1, b)]), poly([])). %coeff è zero, elimino monomio
+	polyminus(poly([m(-1, 1, [v(1, x)])]), poly([m(3, 1, [v(1, x)])]), poly([m(-4, 1, [v(1, x)])])),
+	polyminus(poly([m(1, 2, [v(1, a), v(1, b)])]), poly([m(1, 2, [v(1, a), v(1, b)])]), poly([])). %coeff è zero, elimino monomio
 
 test_polytimes() :-
 	polytimes(1, a * b * c, poly([m(1, 3, [v(1, a), v(1, b), v(1, c)])])),
@@ -82,7 +82,7 @@ test_as_polynomial() :-
 	as_polynomial(pippo + gennaro + 3 * pippo, poly([m(1, 1, [v(1, gennaro)]), m(4, 1, [v(1, pippo)])])),
 	as_polynomial(a * b + c * d + a * d + s * d, poly([m(1, 2, [v(1, a), v(1, b)]), m(1, 2, [v(1, a), v(1, d)]), m(1, 2, [v(1, c), v(1, d)]), m(1, 2, [v(1, d), v(1, s)])])),
 	as_polynomial(-3 * pippo -4*gennaro + 1, poly([m(1, 0, []), m(-4, 1, [v(1, gennaro)]), m(-3, 1, [v(1, pippo)])])),
-	as_polynomial(-3 * a ^ 4, +12 * a ^2 * a ^2, poly([m(9, 4, [v(4, a)])])).
+	as_polynomial(-3 * a ^ 4 +12 * a ^2 * a ^2, poly([m(9, 4, [v(4, a)])])).
 
 test_polyval() :-
 	polyval(3, [], 3),

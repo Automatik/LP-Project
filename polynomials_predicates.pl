@@ -16,7 +16,7 @@
 
 %%	coefficients(Poly, Coefficients)
 coefficients([], []).
-coefficients(m(Coefficient, _, _), Coefficient) :-
+coefficients(m(Coefficient, _, _), [Coefficient]) :-
 	number(Coefficient).
 coefficients([m(Coefficient, _, _)| Xs], [Coefficient| Ys]) :-
 	number(Coefficient),
@@ -144,6 +144,7 @@ sum_power([X | Xs], [X | Ys]) :-
 	sum_power(Xs, Ys).
 
 monomials([], []).
+monomials(poly([]), []).
 monomials(poly(X), Y) :-
 %	list_power(X, X1),
 %	sum_power(X1, X2),
@@ -152,13 +153,16 @@ monomials(poly(X), Y) :-
 %	mergesort(X2, _, M, X3),
 	sort(2, @=<, M, X3),
 	ordina_stesso_grado(X3, Y).
+monomials(Poly, Ms) :-
+	as_polynomial(Poly, P),
+	monomials(P, Ms).
 
 ordina_stesso_grado(Ms, L) :-
 	mindegree(poly(Ms), MinG),
 	maxdegree(poly(Ms), MaxG),
-	confronta(Ms, MinG, MaxG, [], L).
+	confronta2(Ms, MinG, MaxG, [], L).
 
-confronta(_, G1, G, L, L) :-
+/*confronta(_, G1, G, L, L) :-
 	is_list(L),
 	G1 is G+1.
 confronta(Ms, G, MaxG, ListaProvv, List) :-
@@ -169,7 +173,19 @@ confronta(Ms, G, MaxG, ListaProvv, List) :-
 	mergesort3(Xs, Ys1),
 	append(ListaProvv, Ys1, Zs),
 	G1 is G+1,
-	confronta(Ms, G1, MaxG, Zs, List).
+	confronta(Ms, G1, MaxG, Zs, List).*/
+
+confronta2([], G1, G, L, L) :-
+	is_list(L),
+	G1 is G+1.
+confronta2(Ms, G, MaxG, ListaProvv, List) :-
+	G =< MaxG,
+	estrai_monomi(Ms, G, Xs),
+	subtract(Ms, Xs, Ms1),
+	mergesort3(Xs, Ys),
+	append(ListaProvv, Ys, Zs),
+	G1 is G+1,
+	confronta2(Ms1, G1, MaxG, Zs, List).
 
 estrai_monomi([], _, []).
 estrai_monomi([m(_, TD, _) | Ms], G, Xs) :-
@@ -641,9 +657,18 @@ calcolaVars([v(E, B)| Vs], Value) :-
 
 
 %CASO GENERALE, PER CHIAMARE SORT SOLO UNA VOLTA
-as_monomial(E, m(C, G, Vs)) :-
+as_monomial(E, m(0, 0, [])) :-
+	as_mony(E, m(0, 0, [])).
+as_monomial(E, M) :-
+	as_mony(E, W),
+	monomials(poly([W]), X),
+	compress(X, Y),
+	monomials(poly(Y), Z),
+	Z = [M],
+	M \= m(0, 0, []).
+/*as_monomial(E, m(C, G, Vs)) :-
 	as_mony(E, m(C, G, VPs)),
-        sort(2, @=<, VPs, Vs).
+        sort(2, @=<, VPs, Vs).*/
 as_mony(E, m(E, 0, [])) :-
 	number(E).
 %	E \= 0.
@@ -676,8 +701,13 @@ as_mony(E, m(C1, 1, [v(1, V)])) :-
 as_mony(E, m(1, Exp, [v(Exp, B)])) :-
 	E = B^Exp,
 	Exp \= 0.
+as_mony(E, m(-1, Exp, [v(Exp, B)])) :-
+	E = -B^Exp,
+	Exp \= 0.
 as_mony(E, m(1, 0, [])) :-
 	E = _^0.
+as_mony(E, m(-1, 0, [])) :-
+	E = -_^0.
 as_mony(E, m(C, Exp, VPs)) :-
 	E = V1*V2,
 	as_mony(V2, m(1, Exp1, VP1)),
