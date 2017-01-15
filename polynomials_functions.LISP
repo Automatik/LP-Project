@@ -787,9 +787,4 @@ nil))))))))))))
                            (fourth m))) 
                (parse-polynomial (rest p))))))
 
-
-          
-          
-      
-      
          
