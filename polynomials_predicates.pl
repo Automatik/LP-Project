@@ -531,6 +531,7 @@ indexOf([_| T], E, Index) :-
 	Index is Index1+1.
 
 %%% polyval(Poly, VariableValues, Value)
+%%% Sostituisce il valore nelle variabili e calcola il risultato
 polyval(poly(Ms), VariableValues, Value) :-
 	is_polynomial(poly(Ms)),
 	variables(poly(Ms), Vars),
@@ -670,7 +671,7 @@ as_poly(E, poly(Monomials)) :-
 
 
 %CASO GENERALE, per controllo che sia un polinomio
-%Stampa un polinomio
+%Stampa un polinomio in forma di espressione
 pprint_polynomial(Poly) :-
 	parse_polynomial(Poly,Polyp),
 	is_polynomial(Polyp),
