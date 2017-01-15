@@ -1,20 +1,12 @@
+%%%% 807476 Pozzoni Simone
+%%%% 807527 Osterhed Emil
+
+
 %%% -*- Mode: Prolog -*-
 
 
-/*
- * PROBLEMI DA SISTEMARE:
- *
- * - Snellire codice, unire eventuali funzioni duplicate
- * - Il grado di un monomio o una variabile deve essere per forza
- * positivo? E' stato messo >=0 ma potrebbe funzionare anche se negativi
- * */
-
-
-
-
-
-
 %%	coefficients(Poly, Coefficients)
+%%      Coefficients è una lista di tutti i coefficienti di poly
 coefficients([], []).
 coefficients(m(Coefficient, _, _), [Coefficient]) :-
 	number(Coefficient).
@@ -29,6 +21,7 @@ coefficients(Poly, Coefficients) :-
 	coefficients(P, Coefficients).
 
 %%	variables(Poly, Variables)
+%%	Variables è una lista che contiene le variabili di poly
 variables([], []).
 variables(m(_, _, v(Power, VarSymbol)), VarSymbol) :-
 	is_varpower(v(Power, VarSymbol)).
@@ -49,6 +42,7 @@ variables(Poly, Vars) :-
 
 
 %%%	is_monomial(m(Coefficient, TotalDegree, VarsPowers))
+%%%	Ritorna true se m(....) è un monomio
 is_monomial(m(C, TD, VPs)) :-
 	number(C),
 	integer(TD),
@@ -60,18 +54,21 @@ is_monomial(m(C, TD, VPs)) :-
 	TD = Y.
 
 %%%	is_varpower(v(Power, VarSymbol))
+%%%     Ritorna true se v(....) è una variabile
 is_varpower(v(Power, VarSymbol)) :-
 	integer(Power),
 	Power >= 0,
 	atom(VarSymbol).
 
 %%%	is_polynomial(poly(Monomials))
+%%%	Ritorna true se poly(...) è un polinomio
 is_polynomial(poly(Monomials)) :-
 	is_list(Monomials),
 	foreach(member(M, Monomials), is_monomial(M)).
 
 
 %%%	maxdegree and mindegree
+%%%     Ritorna true se degree e' il massiomo grado nel polinomio
 maxdegree(poly(Ms), Degree) :-
 	is_polynomial(poly(Ms)),
 	list_degrees(Ms, Ds),
@@ -79,6 +76,8 @@ maxdegree(poly(Ms), Degree) :-
 maxdegree(Poly, Degree) :-
 	as_polynomial(Poly, P),
 	maxdegree(P, Degree).
+
+%%%     Ritorna true se degree e' il minimo grado del polinomio
 mindegree(poly(Ms), Degree) :-
 	is_polynomial(poly(Ms)),
 	list_degrees(Ms, Ds),
@@ -143,37 +142,25 @@ sum_power([X | Xs],[Y | Ys]) :-
 sum_power([X | Xs], [X | Ys]) :-
 	sum_power(Xs, Ys).
 
+%%%    monomials(poly[], [monomials])
+%%%    Ritorna una lista ordinata di monomi
 monomials([], []).
 monomials(poly([]), []).
 monomials(poly(X), Y) :-
-%	list_power(X, X1),
-%	sum_power(X1, X2),
 	parse_polynomial(poly(X),poly(X1)),
 	ordina_monomi(X1 , M),
-%	mergesort(X2, _, M, X3),
 	sort(2, @=<, M, X3),
 	ordina_stesso_grado(X3, Y).
 monomials(Poly, Ms) :-
 	as_polynomial(Poly, P),
 	monomials(P, Ms).
 
+%%% Serve per ordinare i monomi con lo stesso grado
 ordina_stesso_grado(Ms, L) :-
 	mindegree(poly(Ms), MinG),
 	maxdegree(poly(Ms), MaxG),
 	confronta2(Ms, MinG, MaxG, [], L).
 
-/*confronta(_, G1, G, L, L) :-
-	is_list(L),
-	G1 is G+1.
-confronta(Ms, G, MaxG, ListaProvv, List) :-
-	estrai_monomi(Ms, G, Xs),
-	%sort(2, @=<, Xs, Ys),
-	%sort(3, @=<, Ys, Ys1),
-	%sort([3, 1, 2], @=<, Ys, Ys1),
-	mergesort3(Xs, Ys1),
-	append(ListaProvv, Ys1, Zs),
-	G1 is G+1,
-	confronta(Ms, G1, MaxG, Zs, List).*/
 
 confronta2([], G1, G, L, L) :-
 	is_list(L),
@@ -193,51 +180,10 @@ estrai_monomi([m(_, TD, _) | Ms], G, Xs) :-
 	estrai_monomi(Ms, G, Xs).
 estrai_monomi([m(C, G, VP) | Ms], G, [m(C, G, VP) | Xs]) :-
 	estrai_monomi(Ms, G, Xs).
-/*
-mergesort([], [], [], []).
-mergesort([A], [A], [A1], [A1]).
-mergesort([A,B | R], S, [A1,B1 | R1], Z) :-
-   split([A,B | R], L1, L2, [A1,B1 | R1], L3, L4),
-   mergesort(L1, S1, L3, S3),
-   mergesort(L2, S2, L4, S4),
-   merge(S1, S2, S, S3, S4, Z).
 
-split([], [], [], [], [], []).
-split([A], [A], [], [A1], [A1], []).
-split([A, B | R],[A | Ra],[B | Rb],[A1, B1 | R1],[A1 | Ra1],[B1 | Rb1]) :-
-	split(R, Ra, Rb, R1, Ra1, Rb1).
 
-merge(A, [], A, A1, [], A1).
-merge([], B, B, [], B1, B1).
-merge([A | Ra], [B | Rb], [A | M], [A1 | Ra1], [B1 | Rb1], [A1 | M1]) :-
-	A @>= B,
-	merge(Ra,[B|Rb],M,Ra1,[B1|Rb1],M1).
-merge([A | Ra],[B | Rb],[B | M],[A1 | Ra1],[B1 | Rb1],[B1 | M1]) :-
-	A @< B,
-	merge([A | Ra], Rb, M, [A1 | Ra1], Rb1, M1).
-
-mergesort2([], [], [], []).
-mergesort2([A], [A], [A1], [A1]).
-mergesort2([A,B | R], S, [A1,B1 | R1], Z) :-
-   split2([A,B | R], L1, L2, [A1,B1 | R1], L3, L4),
-   mergesort2(L1, S1, L3, S3),
-   mergesort2(L2, S2, L4, S4),
-   merge2(S1, S2, S, S3, S4, Z).
-
-split2([], [], [], [], [], []).
-split2([A], [A], [], [A1], [A1], []).
-split2([A, B | R],[A | Ra],[B | Rb],[A1, B1 | R1],[A1 | Ra1],[B1 | Rb1]) :-
-	split2(R, Ra, Rb, R1, Ra1, Rb1).
-
-merge2(A, [], A, A1, [], A1).
-merge2([], B, B, [], B1, B1).
-merge2([A | Ra], [B | Rb], [A | M], [A1 | Ra1], [B1 | Rb1], [A1 | M1]) :-
-	A @=< B,
-	merge2(Ra,[B|Rb],M,Ra1,[B1|Rb1],M1).
-merge2([A | Ra],[B | Rb],[B | M],[A1 | Ra1],[B1 | Rb1],[B1 | M1]) :-
-	A @> B,
-	merge2([A | Ra], Rb, M, [A1 | Ra1], Rb1, M1).
-*/
+%%% Ordinamento mergesort
+%%% Lo utilizzo per ordinare i monomi con lo stesso grado
 mergesort3([], []).
 mergesort3([A], [A]).
 mergesort3([A,B | R], S) :-
@@ -335,11 +281,9 @@ confronto_coefficiente(m(C, 0, []), m(C1, 0, [])) :-
 confronto_coefficiente2(m(C, 0, []), m(C1, 0, [])) :-
 	C @> C1.
 
-
+%%% Ordina le variabili di un monomio
 ordina_monomio(m( A, B, []), m( A, B, [])).
 ordina_monomio(m( A, B, Vs), m( A, B, Zs)) :-
-	%list_var(m(_, _, Vs), Vs1),
-	%mergesort2(Vs1, _, Vs, Zs).
 	sort(2, @=<, Vs, Zs).
 
 ordina_monomi([], []).
@@ -357,10 +301,8 @@ list_var(m( _, _, [v(_, Vs) | Zs ]),  [Vs | Ys] ) :-
 	list_var(m( _, _, Zs), Ys).
 
 %%% polyplus(Poly1, Poly2, Result)
-%%	DEVE ACCETTARE SIA IN FORMA poly(Monomials) CHE IN FORMA DI
-%ESPRESSIONE
+%%% Vero se result è la somma di Poly1 e Poly2
 
-%In caso siano espressioni
 polyplus(Poly1, Poly2, poly(Result)) :-
 	parse_polynomial(Poly1, Poly1p),
 	parse_polynomial(Poly2, Poly2p),
@@ -371,16 +313,15 @@ polyplus(Poly1, Poly2, poly(Result)) :-
 	append(Ms1, Ms2, Ms),
 	compress(Ms, SML),
 	monomials(poly(SML), Result).
-	%compressVars(Ms, Mss),
-	%dividi(Mss, SML),
-	%sumLists(SML, Result). %ORDINARE PRIMA DI RESTITUIRLO
+
 polyplus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
 	polyplus(P1, P2, Result).
 
 
-%polyminus, fare Poly1+(-Poly2)
+%%%polyminus(Poly1, Poly2, Result)
+%%%% Vero se result è la differenza di Poly1 e Poly2
 polyminus(Poly1, Poly2, poly(Result)) :-
 	parse_polynomial(Poly1, Poly1p),
 	parse_polynomial(Poly2, Poly2p),
@@ -392,15 +333,14 @@ polyminus(Poly1, Poly2, poly(Result)) :-
 	append(Ms1, NegMs2, Ms),
 	compress(Ms, SML),
 	monomials(poly(SML), Result).
-	%compressVars(Ms, Mss),
-	%dividi(Mss, SML),
-	%sumLists(SML, Result).
+
 polyminus(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
 	polyminus(P1, P2, Result).
 
-
+%%%polytimes(Poly1, Poly2, Result)
+%%%% Vero se result è la moltiplicazione di Poly1 e Poly2
 polytimes(Poly1, Poly2, poly(Result)) :-
 	parse_polynomial(Poly1, Poly1p),
 	parse_polynomial(Poly2, Poly2p),
@@ -410,9 +350,7 @@ polytimes(Poly1, Poly2, poly(Result)) :-
 	monomials(poly(MML), Ms),
 	compress(Ms, SML),
 	monomials(poly(SML), Result).
-	%compressVars(Ms, Mss),
-	%dividi(Mss, SML),
-	%sumLists(SML, Result).
+
 polytimes(Poly1, Poly2, Result) :-
 	as_polynomial(Poly1, P1),
 	as_polynomial(Poly2, P2),
@@ -426,7 +364,6 @@ multiplicatePolynomials(poly(Ms1), poly(Ms2), MML) :-
 accMultiplicatePolynomials([], [], []).
 accMultiplicatePolynomials(_, [], []).
 accMultiplicatePolynomials([], _, []).
-%accMultiplicatePolynomials(_, [], L, L) :- is_list(L).
 accMultiplicatePolynomials([X| Xs], [Y| Ys], Ms) :-
 	multiplicateMonomials([X| Xs], Y, Z),
 	accMultiplicatePolynomials([X| Xs], Ys, Zs),
@@ -572,42 +509,6 @@ accNegateMonomials([m(C, TD, VP)| Ms], Xs, NegMs) :-
 	append(Xs, [m(C1, TD, VP)], Ys),
 	accNegateMonomials(Ms, Ys, NegMs).
 
-%Metodo più corto, manca caso base
-/*negateMonomials([m(C, TD, VP)| Xs], [m(-C, TD, VP)| Ys]) :-
-	negateMonomials(Xs, Ys). */
-
-% polyplus(poly([m(C1, TD, VP1)| MS1]), poly([m(C2, TD, VP2)| MS2]), poly([m(C3, TD, VP3)| MS3])) :-
-%	C3 is C1+C2
-
-/*polyplus(X, Y) :-
-	is_list(X),
-	monomials(X, X1),
-	polyplus_sorted(X1 ,Y).
-
-polyplus_sorted([], []).
-polyplus_sorted([m(C1, T, [V | Vs])], [m(C1, T, [V | Vs])]).
-polyplus_sorted([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]) :-
-	C3 is C1+C2,
-	polyplus_sorted([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
-polyplus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
-	(Vs\=Vs1;V\=V1),
-	polyplus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys). */
-
-%%% polyminus(Poly1, Poly2, Result)
-
-/*polyminus(X, Y) :-
-        is_list(X),
-	monomials(X, X1),
-	polyminus_sorted(X1 ,Y).
-
-polyminus_sorted([], []).
-polyminus_sorted([m(C1, T, [V | Vs])], [m(C1, T, [V | Vs])]).
-polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]) :-
-	C3 is C1-C2,
-	polyminus_sorted([m(C3, T, [V | Vs]) | Xs], [m(C3, T, [V | Vs]) | Ys]).
-polyminus_sorted([m(C1, T, [V | Vs]), m(C2, T1, [V1 | Vs1]) | Xs], [m(C1, T, [V | Vs]) | Ys]) :-
-	(Vs\=Vs1;V\=V1),
-	polyminus_sorted([m(C2, T1, [V1 | Vs1]) | Xs], Ys). */
 
 is_number_list([]).
 is_number_list([N| Ns]) :-
@@ -621,6 +522,7 @@ indexOf([_| T], E, Index) :-
 	!,
 	Index is Index1+1.
 
+%%% polyval(Poly, VariableValues, Value)
 polyval(poly(Ms), VariableValues, Value) :-
 	is_polynomial(poly(Ms)),
 	variables(poly(Ms), Vars),
@@ -655,7 +557,8 @@ calcolaVars([v(E, B)| Vs], Value) :-
 	calcolaVars(Vs, Rest),
 	Value is V*Rest.
 
-
+%Parse di un monomio
+%as_monomial(Expression, Monomial)
 %CASO GENERALE, PER CHIAMARE SORT SOLO UNA VOLTA
 as_monomial(E, m(0, 0, [])) :-
 	as_mony(E, m(0, 0, [])).
@@ -666,20 +569,12 @@ as_monomial(E, M) :-
 	monomials(poly(Y), Z),
 	Z = [M],
 	M \= m(0, 0, []).
-/*as_monomial(E, m(C, G, Vs)) :-
-	as_mony(E, m(C, G, VPs)),
-        sort(2, @=<, VPs, Vs).*/
+
 as_mony(E, m(E, 0, [])) :-
 	number(E).
-%	E \= 0.
 as_mony(E, m(0, 0, [])) :-
 	(E = 0*_; E = _*0).
-/*as_monomial(E, m(E, 0, [])) :-
-	compound(E),
-	functor(E, Fun, N),
-	atom(Fun),
-	arg(N, E, V),
-	number(V).*/
+
 as_mony(E, m(V, 0, [])) :-                    %VA CALCOLATO O LASCIATO COSI'?
 	arithmetic_expression_value(E, V),
 	V \= 0.
@@ -737,6 +632,8 @@ as_mony(E, m(0, 0, [])) :-
 	as_mony(V1, m(C, _, _)),
 	C is 0.
 
+%parse di un polynomio
+%as_polynomial(Expression, Polynomial)
 %CASO GENERALE
 as_polynomial(E, poly(Ms)) :-
 	as_poly(E, poly(Xs)),
@@ -765,6 +662,7 @@ as_poly(E, poly(Monomials)) :-
 
 
 %CASO GENERALE, per controllo che sia un polinomio
+%Stampa un polinomio
 pprint_polynomial(Poly) :-
 	parse_polynomial(Poly,Polyp),
 	is_polynomial(Polyp),
@@ -854,6 +752,8 @@ pprint_poly(poly([m([], _, []) | Ps])) :-
 
 pprint_poly(poly([])).
 
+%%% Fa in modo che se come coefficiete c'è una funzione, essa viene
+%%% calcolata
 parse_polynomial(poly([m(C, G, Vps) | Ms]), poly([m(C1, G, Vps) | Ms1])) :-
 	arithmetic_expression_value(C, C1),
 	parse_polynomial(poly(Ms), poly(Ms1)).
@@ -862,53 +762,6 @@ parse_polynomial(poly([m(C, G, Vps)]), poly([m(C1, G, Vps)])) :-
 	arithmetic_expression_value(C, C1).
 
 parse_polynomial(poly([]), poly([])).
-
-
-
-/*as_monomial(S, X) :-
-	atom_codes(S, X1),
-	parse_monomial(X1, X),
-	list_power([X], Y),
-	sum_power(Y, Y1),
-	add_power(Y1, X).
-
-add_power([Y1], m(_, Y1, _)).
-
-parse_monomial([], m(_, _, [])).
-
-parse_monomial([X | Xs], m(X1, T, [V | Vs])) :-
-	X > 48,
-	X < 58,
-	number_chars(X1, [X]),
-	parse_monomial(Xs, m(X1, T, [V | Vs])).
-
-parse_monomial([X | Xs], m(X2, T, [V | Vs])) :-
-	X > 48,
-	X < 58,
-	number_chars(X1, [X]),
-	K is (X2*10)+X1,
-	parse_monomial(Xs, m(K, T, [V | Vs])).
-
-parse_monomial([X | Xs], m(C, T, [V | Vs])) :-
-	X = 42,
-	parse_monomial(Xs, m(C, T, [V | Vs])).
-
-parse_monomial([X, Y, Z | Xs], m(C, T, [v(Z1, X1) | Vs])) :-
-	X > 96,
-	X < 123,
-	Y = 94,
-	Z > 48,
-	Z < 58,
-	atom_codes(X1, [X]),
-	number_chars(Z1, [Z]),
-	parse_monomial(Xs, m(C, T, Vs)).
-
-parse_monomial([X | Xs], m(C, T, [v(1, X1) | Vs])) :-
-	X > 96,
-	X < 123,
-	atom_codes(X1, [X]),
-	parse_monomial(Xs, m(C, T, Vs)). */
-
 
 
 %%% end of file -- polynomials_predicates.pl
