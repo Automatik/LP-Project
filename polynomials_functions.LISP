@@ -22,7 +22,7 @@
              (var (third vp)))
          (and (integerp power)
               (>= power 0)
-              (alpha-char-p (coerce var 'character)))))) ;symbolp non va bene.
+              (every #'alpha-char-p (string var))))))
 
 ;; poly-monomials è per forza da fare?
 (defun is-polynomial (p)
@@ -32,15 +32,18 @@
          (and (listp ms)
               (every #'is-monomial ms)))))
 
-
 (defun varpowers (m)
-  (cond ((is-monomial m) (fourth m))))
-
+  (if (is-monomial m)
+      (fourth m)
+    (fourth (as-monomial m))))
+    
 (defun vars-of (m)
-  (let ((vps (varpowers m)))
-    (if (null (every #'is-varpower vps))
-        nil
-      (var-symbols vps))))
+  (if (is-monomial m)
+      (let ((vps (varpowers m)))
+        (if (null (every #'is-varpower vps))
+            nil
+          (var-symbols vps)))
+    (vars-of (as-monomial m))))
 
 (defun var-symbols (vps)
   (if (null vps)
@@ -70,7 +73,8 @@
       nil)))
 
 (defun monomial-degree (m)
-  (cond ((is-monomial m) (third m))))
+  (cond ((is-monomial m) (third m))
+        (T (monomial-degree (as-monomial m)))))
 
 (defun sum-varpowers (vps)
   (if (null vps)
@@ -78,30 +82,30 @@
     (+ (second (first vps)) (sum-varpowers (rest vps)))))
 
 (defun monomial-coefficient (m)
-  (cond ((is-monomial m) (second m))))
+  (cond ((is-monomial m) (second m))
+        (T (monomial-coefficient (as-monomial m)))))
 
 (defun coefficients (p)
   (if (null (is-polynomial p))
-      nil
+      (coefficients (as-polynomial p))
     (let ((ms (second p)))
       (mapcar 'monomial-coefficient ms))))
 
-; Manca ordinamento
 (defun variables (p)
   (if (null (is-polynomial p))
-      nil
+      (variables (as-polynomial p))
     (let ((ms (second p)))
-      (flatten (mapcar 'vars-of ms)))))   ;oppure: (apply 'vars-of 'ms)
+      (sort (remove-duplicates (flatten (mapcar 'vars-of ms))) #'string-lessp))))
 
 (defun maxdegree (p)
   (if (null (is-polynomial p))
-      nil
+      (maxdegree (as-polynomial p))
     (let ((ms (second p)))
       (apply 'max (mapcar 'monomial-degree ms)))))
 
 (defun mindegree (p)
   (if (null (is-polynomial p))
-      nil
+      (mindegree (as-polynomial p))
     (let ((ms (second p)))
       (apply 'min (mapcar 'monomial-degree ms)))))
 
@@ -109,43 +113,50 @@
 ;VEDERE CASI TIPO COS(30)
 (defun as-monomial (m)
   (if (or (null (listp m))
-          (eq 'expt (first m))
-          (numberp (ignore-errors (eval m))))
-      (add-m (as-mony m))
+          (eq 'expt (first m)))
+          ;(numberp (ignore-errors (eval m))))
+      (car (remove-zeros (list (add-m (as-mony m)))))
     (let ((coeff (parse-coefficient (car (cdr m))))
           (vars (mapcar 'as-mony (cdr (cdr m)))))
       (if (and (not (null coeff)) ;se coeff non nullo e lista inizia con operatore *
                (eq '* (first m)))
           (if (null (numberp coeff)) ;se il coeff è una variabile
               (if (null (cdr (cdr m))) ;se non c'è qualcosa dopo il coeff(var) nella lista
-                  (multiplicate-single-monomial 
-                   (list 'm 1 (sum-varpowers (list (as-mony coeff))) (list (as-mony coeff)))) ;
+                  (car (monomials (list 'poly
+                                   (compress (monomials (list 'poly
+                                                             (list  (list 'm 
+                                                                          1 
+                                                                          (sum-varpowers (list (as-mony coeff))) 
+                                                                          (list (as-mony coeff)))))))))) 
                 (if (null (member nil vars)) ;se vars non contiene nessuna variabile scritta male(cioè valore NIL)
-                    (multiplicate-single-monomial 
-                                                   (list 'm
-                                                         1
-                                                         (sum-varpowers (append (list (as-mony coeff)) vars)) ;
-                                                         (append (list (as-mony coeff)) vars)))
+                    (car (monomials (list 'poly
+                                     (compress (monomials (list 'poly
+                                                               (list (list 'm
+                                                                           1
+                                                                           (sum-varpowers (append (list (as-mony coeff)) vars)) ;
+                                                                           (append (list (as-mony coeff)) vars)))))))))
                   nil))
             (if (null (cdr (cdr m))) ;se non c'è qualcosa dopo il coeff(num) nella lista
                 (list 'm coeff 0 nil) 
               (if (null (member nil vars)) ;se vars non contiene nessuna variabile scritta male(cioè valore NIL)
-                  (multiplicate-single-monomial (list 'm
-                                                      coeff
-                                                      (sum-varpowers vars) ;
-                                                      vars))
+                  (car (monomials (list 'poly
+                                   (compress (monomials (list 'poly
+                                                              (list (list 'm
+                                                                          coeff
+                                                                          (sum-varpowers vars) ;
+                                                                          vars))))))))
                 nil)))
         nil))))
           
 (defun as-mony (m)
   (cond ((numberp (parse-coefficient m)) (parse-coefficient m)) ;`('m 0 nil)
         ((and (null (listp m))
-              (alpha-char-p (coerce m 'character))) `(v 1 ,m))
+              (every #'alpha-char-p (string m))) `(v 1 ,m))
         ((and (listp m)
               (eq 'expt (first m))) (let ((var (second m))
                                           (exp (third m)))
                                       (if (or (null (integerp exp))
-                                              (null (alpha-char-p (coerce var 'character))))
+                                              (null (every #'alpha-char-p (string var))))
                                           nil
                                         `(v ,exp ,var))))))
 
@@ -163,44 +174,57 @@
     c))
 
 (defun as-polynomial (p)
-  (cond ((null (listp p)) (list 'poly (list (as-monomial p))))
-        ((and (listp p)
-              (or (eq 'expt (first p))
-                  (eq '* (first p))))
-         (polyplus (monomials (list 'poly (list (as-monomial p)))) '(poly())))
-        ((or (eq '+ (first p))
-             (eq '- (first p)))
-         (let ((ms (cdr p)))
-           (polyplus (monomials (list 'poly
-                                      (mapcar 'as-monomial ms))) '(poly()))))))
+  (let ((poly (cond ((null (listp p)) (list 'poly (list (as-monomial p))))
+                    ((and (listp p)
+                          (or (eq 'expt (first p))
+                              (eq '* (first p))))
+                     (list 'poly (list (as-monomial p))))
+                    ((or (eq '+ (first p))
+                         (eq '- (first p)))
+                     (let ((ms (cdr p)))
+                       (list 'poly
+                             (monomials (list 'poly
+                                              (compress (monomials (list 'poly
+                                                                         (remove-sublist (mapcar 'as-monomial ms) 
+                                                                                         nil))))))))))))
+    (if (equal '((m 0 0 nil)) (second poly))
+        '(poly ())
+      poly)))
     
 (defun polyplus (p1 p2)
   (if (and (is-polynomial p1)
            (is-polynomial p2))
-      (list 'poly 
-            (sum-lists (dividi (append (second p1) 
-                                       (second p2))
-                               '())))
-    nil))
+      (let ((ms1 (monomials p1))
+            (ms2 (monomials p2)))
+        (list 'poly 
+              (monomials (list 'poly
+                               (compress (append ms1 
+                                                 ms2))))))
+    (polyplus (as-polynomial p1)
+              (as-polynomial p2))))
 
 (defun polyminus (p1 p2)
   (if (and (is-polynomial p1)
            (is-polynomial p2))
-      (list 'poly
-            (sum-lists (dividi (append (second p1)
-                                       (negate-monomials (second p2)))
-                               '())))
-    nil))
+      (let ((ms1 (monomials p1))
+            (ms2 (monomials p2)))
+        (list 'poly
+            (monomials (list 'poly
+                             (compress (append (second ms1)
+                                               (negate-monomials (second ms2))))))))
+    (polyminus (as-polynomial p1)
+               (as-polynomial p2))))
 
 (defun polytimes (p1 p2)
   (if (and (is-polynomial p1)
            (is-polynomial p2))
       (list 'poly
-            (sum-lists (dividi (monomials (list 'poly
-                                                (multiplicate-polynomials (second p1)
-                                                                          (second p2))))
-                               '())))
-    nil))
+            (monomials (list 'poly
+                             (compress (monomials (list 'poly
+                                                        (multiplicate-polynomials (second p1)
+                                                                                  (second p2))))))))
+    (polytimes (as-polynomial p1)
+               (as-polynomial p2))))
 
 (defun multiplicate-polynomials (ms1 ms2)
   (if (and (listp ms1)
@@ -222,21 +246,7 @@
                               (sum-variables (varpowers (first ms)) (varpowers m))))
                   (multiplicate-monomials (rest ms) m))
         nil)
-    nil))
-
-(defun multiplicate-vars (vs) 
-  (if (null vs) 
-      nil
-    (if (eq (third (first vs)) (third (second vs)))
-        (multiplicate-vars (append (list `(V ,(+ (second (first vs)) (second (second vs))) ,(third (first vs)))) (rest (rest vs))))
-      (append (list (first vs)) (multiplicate-vars (rest vs))))))
-
-(defun multiplicate-single-monomial (m)
-  (if (null (is-monomial m))
-      nil
-    (append `(M ,(second m) ,(third m) ,(multiplicate-vars (mergesort2 (fourth m)))))))
-      
-      
+    nil))     
 
 (defun sum-variables (vs1 vs2)
   (if (and (listp vs1)
@@ -273,7 +283,23 @@
 (defun sum-lists (ms)
   (if (and (listp ms)
            (not (null ms)))
-      (append (list (sum-monomials (first ms))) (sum-lists (rest ms)))
+      (if (is-varpower (first (first ms)))
+          (append (list (sum-powers (first ms))) (sum-lists (rest ms)))
+        (append (list (sum-monomials (first ms))) (sum-lists (rest ms))))
+    nil))
+
+;questa a differenza di sum-varpowers ritorna una variabile con esponente 
+;sommato alle variabili uguali
+(defun sum-powers (vps)
+  (if (listp vps)
+      (if (not (null vps))
+          (let ((p1 (second (first vps)))
+                (v (third (first vps)))
+                (var (sum-powers (rest vps))))
+            (list 'v
+                  (+ p1 (second var))
+                  v))
+        (list 'v 0 'v))
     nil))
 
 (defun sum-monomials (ms)
@@ -288,6 +314,45 @@
         (list 'm 0 0 nil))
     nil))
 
+(defun compress (ms)
+  (if (and (listp ms)
+           (not (null ms)))
+      (remove-zeros (sum-lists (dividi (compress-vars ms)
+                                       '())))
+    nil))
+
+(defun remove-zeros (ms)
+  (if (and (listp ms)
+           (not (null ms)))
+      (let ((m (first ms)))
+        (cond ((eq 0 (monomial-coefficient m))
+               (remove-zeros (rest ms)))
+              ((eq 0 (monomial-degree m))
+               (append (list (list 'm
+                                   (monomial-coefficient m)
+                                   0
+                                   nil))
+                       (remove-zeros (rest ms))))
+              (T (append (list m)
+                         (remove-zeros (rest ms))))))
+    nil))
+
+
+(defun compress-vars (ms)
+  (cond ((and (listp ms)
+              (not (is-monomial ms)))
+         (if (not (null ms))
+             (append (list (compress-vars (first ms)))
+                     (compress-vars (rest ms)))
+           nil))
+        ((is-monomial ms)
+         (list 'm
+               (monomial-coefficient ms)
+               (monomial-degree ms)
+               (sum-lists (dividi (varpowers ms)
+                            '()))))))
+
+;chiamare dividi con l='()
 (defun dividi (ms l)
   (if (listp ms)
       (if (not (null ms))
@@ -312,16 +377,21 @@
         (append (list (first l)) (remove-sublist (rest l) sublist)))
     nil))
 
+;usata sia per i monomi interi che per le singoli variabili
 (defun presente (m l)
   (if (and (listp l)
            (not (null l)))
-           ;(is-monomial m))
-      (let ((sublist (first l))
-            (monomial (first (first l))))
-        (if (and (eq (monomial-degree m) (monomial-degree monomial))
-                 (equal (varpowers m) (varpowers monomial)))
-            sublist
-          (presente m (rest l))))
+      (cond ((is-monomial m) (let ((sublist (first l)) ;se il monomio è presente in una delle sottoliste
+                                   (monomial (first (first l))))
+                               (if (and (eq (monomial-degree m) (monomial-degree monomial))
+                                        (equal (varpowers m) (varpowers monomial)))
+                                   sublist
+                                 (presente m (rest l)))))
+            ((is-varpower m) (let ((sublist (first l)) ;se la variabile è presente in una delle sottoliste
+                                   (var (first (first l))))
+                               (if (eq (third var) (third m))
+                                   sublist
+                                 (presente m (rest l))))))
     nil))
 
 (defun negate-monomials (ms)
@@ -342,7 +412,7 @@
            (every #'realp varvalues))
       (let ((vars (variables p)))
         (calcola (sostituisci (second p) vars varvalues)))
-    nil))
+    (polyval (as-polynomial p) varvalues)))
 
 (defun sostituisci (ms vars varvalues)
   (if (and (listp ms)
@@ -388,9 +458,11 @@
   
 (defun monomials (p)
   (if (null (is-polynomial p))
-      nil
-    (let ((p1 (ordina-stesso-grado (ordina-monomi (mergesort (second p))) (mindegree p))))
-      (append (list 'poly) (list (parse-polynomial p1))))))
+      (monomials (as-polynomial p))
+    (if (null (second p))
+        nil
+      (let ((p1 (ordina-stesso-grado (ordina-monomi (mergesort (second p))) (mindegree p))))
+        (parse-polynomial p1)))))
   
 
 (defun list-head (lst n) (if (eq n 0) '() (cons (car lst) (list-head (cdr lst) (- n 1)))))
@@ -446,7 +518,7 @@
 
 (defun pprint-polynomial (p) 
   (if (null (is-polynomial p))
-      nil
+      (pprint-polynomial (as-polynomial p))
     (format t "~s" (subseq (print-monomials (second p)) 1))))
 
 (defun print-monomials (ms) 
@@ -574,6 +646,186 @@
       nil
     (let ((m (car p)))
       (append  (list (list (first m) (parse-coefficient (second m)) (third m) (fourth m))) (parse-polynomial (rest p))))))
+
+(defun test ()
+  (and (equal (as-polynomial '(+ (* 2 b) (* b) (* 3 c) (* 4 a)))
+              '(POLY ((M 4 1 ((V 1 A))) (M 3 1 ((V 1 B))) (M 3 1 ((V 1 C))))))
+
+       (equal (as-polynomial '(+ (* (expt x 2)) (* a)))
+              '(POLY ((M 1 1 ((V 1 A))) (M 1 2 ((V 2 X))))))
+
+       (equal (as-polynomial '(+ (* 0 (expt x 3)) (* (expt y 0)) (* a) (* (expt a 2))))
+              '(POLY ((M 1 0 NIL) (M 1 1 ((V 1 A))) (M 1 2 ((V 2 A))))))
+
+       (equal (as-polynomial '(+ (* c) (* b) (* t) (* g) (* a)))
+              '(POLY ((M 1 1 ((V 1 A))) (M 1 1 ((V 1 B))) (M 1 1 ((V 1 C))) (M 1 1 ((V 1 G))) (M 1 1 ((V 1 T))))))
+
+       (equal  (as-polynomial '(+ (* (expt x 2)) (* x) (* (expt x 3) )))
+               '(POLY ((M 1 1 ((V 1 X))) (M 1 2 ((V 2 X))) (M 1 3 ((V 3 X))))))
+
+       (equal (as-polynomial '(+ (* 13) (* 2) (* x)))
+              '(POLY ((M 15 0 NIL) (M 1 1 ((V 1 X))))))
+
+       (equal (as-polynomial '(+ (* x (expt y 2)) (* (expt x 3)) (* x y z)))
+              '(POLY ((M 1 3 ((V 1 X) (V 1 Y) (V 1 Z))) (M 1 3 ((V 1 X) (V 2 Y))) (M 1 3 ((V 3 X))))))
+
+       (equal (as-polynomial '(+ (* x x) (* x x x)))
+              '(POLY ((M 1 2 ((V 2 X))) (M 1 3 ((V 3 X))))))
+
+       (equal (varpowers '(* 0 x)) 
+              'NIL)
+       (equal (varpowers '(* b a c))
+              '((V 1 A) (V 1 B) (V 1 C)))
+
+       (equal (varpowers '(* b (expt a 3) c))
+              '((V 3 A) (V 1 B) (V 1 C)))
+
+       (equal (varpowers '(* 42 a))
+              '((V 1 A)))
+       (equal (vars-of '(* 42 x a))
+              '(A X))
+
+       (equal (vars-of '(* 0 x a))
+              'NIL)
+
+       (equal (vars-of '(* (expt a 12) (expt b 10)))
+              '(A B))
+
+       (equal (monomial-degree '(* 0 x))
+              '0)
+
+       (equal (monomial-degree '(* 42 (expt a 2) x (expt ciao 3)))
+              '6)
+
+       (equal (monomial-coefficient '(* a))
+              '1)
+
+       (equal (monomial-coefficient (as-monomial '(* 0 (expt x 10))))
+              '0)
+
+       (equal (coefficients (as-polynomial '(+ (* y (expt s 3) (expt t 3)) -4 (* x y))))
+              '(-4 1 1))
+
+       (equal (coefficients '(+ (* a) (* (expt x 0))))
+              '(1 1))
+
+       (equal (coefficients '(+ 6 (* 4 x)))
+              '(6 4))
+
+       (equal (coefficients '(+ (* 1 x) (* 2 x)))
+              '(3))
+
+       (equal (coefficients '(+ (* 1 x) (* 2 a)))
+              '(2 1))
+
+       (equal (variables '(+ (* 0 x) (* 42 (expt a 4))))
+              '(A))
+
+       (equal (variables '(+ (* 2 b) (* 4 c) (* 1 a)))
+              '(A B C))
+
+       (equal (variables '(+ (* 2 (expt x 0))))
+              'NIL)
+
+       (equal (monomials '(+ (* b) (* 2 a c) (* -1 (expt a 2))))
+              '((M 1 1 ((V 1 B))) (M 2 2 ((V 1 A) (V 1 C))) (M -1 2 ((V 2 A)))))
+
+       (equal (monomials '(+ (* 0 x) (* (expt y 0)) (* 3)))
+              '((M 4 0 NIL)))
+
+       (equal (monomials '(+ (* x) (* x) (* x)))
+              '((M 3 1 ((V 1 X)))))
+
+       (equal  (monomials '(+ (* x x x x ac)))
+               '((M 1 5 ((V 1 AC) (V 4 X)))))
+
+       (equal (maxdegree '(+ (* x) (* x) (* x)))
+              '1)
+
+       (equal (maxdegree '(+ (* 0 x)))
+              '0)
+
+       (equal (maxdegree '(+ (* 2 (expt x 0))))
+              '0)
+
+       (equal (as-monomial '(* 1 b c d a))
+              '(M 1 4 ((V 1 A) (V 1 B) (V 1 C) (V 1 D))))
+
+       (equal (as-monomial '(* (expt x 3) x (expt x 2)))
+              '(M 1 6 ((V 6 X))))
+
+       (equal (as-monomial '(* (expt a 3) b (expt c 2)))
+              '(M 1 6 ((V 3 A) (V 1 B) (V 2 C))))
+
+       (equal (as-monomial '(* 0 (expt pippo 3)))
+              '(M 0 0 NIL))
+
+       (equal (as-monomial '(* 10 (expt a 0) c (expt b 2)))
+              '(M 10 3 ((V 2 B) (V 1 C))))
+
+       (equal (polyplus '(+ (* x)) '(+ (* x)))
+              '(POLY ((M 2 1 ((V 1 X))))))
+
+       (equal (polyplus '(+ (* a) (* 2 (expt b 2))) '(+ (* 3 c)))
+              '(POLY ((M 1 1 ((V 1 A))) (M 3 1 ((V 1 C))) (M 2 2 ((V 2 B))))))
+
+       (equal (polyplus '(+ (* a) (* 2 (expt b 2))) '(+ (* -1 a)))
+              '(POLY ((M 2 2 ((V 2 B))))))
+
+       (equal (polyplus '(+ (* a) (* 2 (expt b 2))) '(+ (* 0 )))
+              '(POLY ((M 1 1 ((V 1 A))) (M 2 2 ((V 2 B))))))
+       
+       (equal (polyminus '(+ (* x)) '(+ (* 2 x)))
+              '(POLY ((M -1 1 ((V 1 X))))))
+
+       (equal (polyminus '(+ (* x)) '(+ (* 2 x) (* (expt a 8)) (* (expt b 2))))
+              '(POLY ((M -1 1 ((V 1 X))) (M -1 2 ((V 2 B))) (M -1 8 ((V 8 A))))))
+
+       (equal (polyminus '(+ (* x)) '(+ (* x)))
+              '(POLY NIL))
+
+       (equal (polytimes '(+ (* a) (* b)) '(+ (* c)))
+              '(POLY((M 1 2 ((V 1 A) (V 1 C))) (M 1 2 ((V 1 B) (V 1 C))))))
+
+       (equal (polytimes '(+ (* a) (* b)) '(+ (* a) (* b)))
+              '(POLY((M 2 2 ((V 1 A) (V 1 B))) (M 1 2 ((V 2 A))) (M 1 2 ((V 2 B))))))
+
+       (equal (polytimes '(+ (* a) (* b)) '(+ (* 0)))
+              '(POLY NIL))
+
+       (equal (polytimes '(+ (* a) (* b)) '(+ (* 2)))
+              '(POLY((M 2 1 ((V 1 A))) (M 2 1 ((V 1 B))))))
+       
+       (equal (polytimes '(+ (* a) (* b)) '(+ (* 2) (* pippo)))
+              '(POLY((M 2 1 ((V 1 A))) (M 2 1 ((V 1 B))) (M 1 2 ((V 1 A) (V 1 PIPPO))) (M 1 2 ((V 1 B) (V 1 PIPPO))))))
+
+       (equal (polytimes '(+ (* 2)) '(+ (* 6)))
+              '(POLY((M 12 0 NIL))))
+
+       (equal (polytimes '(+ (* 2)) '(+ (* 2 (expt x 0))))
+              '(POLY((M 4 0 NIL))))
+
+       (equal (polytimes '(+ (* 2)) '(+ (* 2 (expt x 0) y)))
+              '(POLY((M 4 1 ((V 1 Y))))))
+
+       (equal (polytimes '(+ (* a)) '(+ (* a) (* b) (* (expt c 2))))
+              '(POLY((M 1 2 ((V 1 A) (V 1 B))) (M 1 2 ((V 2 A))) (M 1 3 ((V 1 A) (V 2 C))))))
+
+       (equal (polytimes '(+ (* x) (* 2 y)) '(+ (* z)))
+              '(POLY ((M 1 2 ((V 1 X) (V 1 Z))) (M 2 2 ((V 1 Y) (V 1 Z))))))
+
+       (equal  (polyval '(+ (* a)) '(1))
+               '1)
+
+       (equal (polyval '(+ (* 2 a y)) '(1 2 3 4 5 6))
+              '4)
+
+       (equal (polyval '(+ (* a) (* b) (* (expt c 2)))'(1 2 3))
+              '12)
+
+       (equal (polyval '(+ (* a) (* b) (* (expt c 2))) '(0 0 3))
+              '9)))
+
           
           
       
