@@ -4,7 +4,6 @@
 
 %%% -*- Mode: Prolog -*-
 
-
 %%	coefficients(Poly, Coefficients)
 %%      Coefficients è una lista di tutti i coefficienti di poly
 coefficients([], []).
@@ -243,34 +242,42 @@ merge3([m(C, G, Vs) | Ra],[m(C1, G, Vs) | Rb],[m(C1, G, Vs) | M]) :-
 	merge3([m(C, G, Vs) | Ra], Rb, M).
 
 
-confronto_stesso_grado(m( _, _, [v( _, Var) | _]), m( _, _, [v( _, Var2) | _])) :-
+confronto_stesso_grado(m( _, _, [v( _, Var) | _]),
+		       m( _, _, [v( _, Var2) | _])) :-
 	Var @< Var2.
-confronto_stesso_grado(m( _, _, [v( _, Var) | Vs]), m( _, _, [v( _, Var) | Vs2])) :-
+confronto_stesso_grado(m( _, _, [v( _, Var) | Vs]),
+		       m( _, _, [v( _, Var) | Vs2])) :-
 	confronto_stesso_grado(m( _, _, Vs), m( _, _, Vs2)).
 confronto_stesso_grado(m( _, _, []), m( _, _, [])) :-
 	fail.
 confronto_stesso_grado(m( _, _, Vs), m( _, _, [])) :-
 	Vs\=[].
 
-confronto_stesso_grado2(m( _, _, [v( _, Var) | _]), m( _, _, [v( _, Var2) | _])) :-
+confronto_stesso_grado2(m( _, _, [v( _, Var) | _]),
+			m( _, _, [v( _, Var2) | _])) :-
 	Var @> Var2.
-confronto_stesso_grado2(m( _, _, [v( _, Var) | Vs]), m( _, _, [v( _, Var) | Vs2])) :-
+confronto_stesso_grado2(m( _, _, [v( _, Var) | Vs]),
+			m( _, _, [v( _, Var) | Vs2])) :-
 	confronto_stesso_grado2(m( _, _, Vs), m( _, _, Vs2)).
 confronto_stesso_grado2(m( _, _, []), m( _, _, [])) :-
 	fail.
 confronto_stesso_grado2(m( _, _, []), m( _, _, Vs)) :-
 	Vs\=[].
 
-confronto_esponente(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
+confronto_esponente(m( _, _, [v( C, V) | _]),
+		    m( _, _, [v( C1, V) | _])) :-
 	C @< C1.
-confronto_esponente(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
+confronto_esponente(m( _, _, [v( C, V) | Vs]),
+		    m( _, _, [v( C, V) | Vs1])) :-
 	confronto_esponente(m( _, _, Vs), m( _, _, Vs1)).
 confronto_esponente(m( _, _, []), m( _, _, [])) :-
 	fail.
 
-confronto_esponente2(m( _, _, [v( C, V) | _]), m( _, _, [v( C1, V) | _])) :-
+confronto_esponente2(m( _, _, [v( C, V) | _]),
+		     m( _, _, [v( C1, V) | _])) :-
 	C @> C1.
-confronto_esponente2(m( _, _, [v( C, V) | Vs]), m( _, _, [v( C, V) | Vs1])) :-
+confronto_esponente2(m( _, _, [v( C, V) | Vs]),
+		     m( _, _, [v( C, V) | Vs1])) :-
 	confronto_esponente2(m( _, _, Vs), m( _, _, Vs1)).
 confronto_esponente2(m( _, _, []), m( _, _, [])) :-
 	fail.
@@ -370,7 +377,8 @@ accMultiplicatePolynomials([X| Xs], [Y| Ys], Ms) :-
 	append(Z, Zs, Ms).
 
 multiplicateMonomials([], _, []).
-multiplicateMonomials([m(C1, TD1, VP1)| Xs], m(C2, TD2, VP2), [m(C, TD, VP)| Zs]) :-
+multiplicateMonomials([m(C1, TD1, VP1)| Xs], m(C2, TD2, VP2),
+		      [m(C, TD, VP)| Zs]) :-
 	C is C1*C2,
 	TD is TD1+TD2,
 	sumVariables(VP1, VP2, VP),
@@ -575,7 +583,7 @@ as_mony(E, m(E, 0, [])) :-
 as_mony(E, m(0, 0, [])) :-
 	(E = 0*_; E = _*0).
 
-as_mony(E, m(V, 0, [])) :-                    %VA CALCOLATO O LASCIATO COSI'?
+as_mony(E, m(V, 0, [])) :-
 	arithmetic_expression_value(E, V),
 	V \= 0.
 as_mony(E, m(1, 1, [v(1, E)])) :-
