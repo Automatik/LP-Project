@@ -162,7 +162,7 @@ ordina_stesso_grado(Ms, L) :-
 	maxdegree(poly(Ms), MaxG),
 	confronta2(Ms, MinG, MaxG, [], L).
 
-confronta(_, G1, G, L, L) :-
+/*confronta(_, G1, G, L, L) :-
 	is_list(L),
 	G1 is G+1.
 confronta(Ms, G, MaxG, ListaProvv, List) :-
@@ -173,7 +173,7 @@ confronta(Ms, G, MaxG, ListaProvv, List) :-
 	mergesort3(Xs, Ys1),
 	append(ListaProvv, Ys1, Zs),
 	G1 is G+1,
-	confronta(Ms, G1, MaxG, Zs, List).
+	confronta(Ms, G1, MaxG, Zs, List).*/
 
 confronta2([], G1, G, L, L) :-
 	is_list(L),
@@ -822,7 +822,7 @@ pprint_poly(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
 
 pprint_poly(poly([m(C, _, [_ | _]) | Ps])) :-
 	C=0,
-	pprint_polynomial(poly(Ps)).
+	pprint_poly(poly(Ps)).
 
 
 pprint_poly(poly([m([], _, [v(N, V) | Vs]) | Ps])) :-
@@ -836,7 +836,7 @@ pprint_poly(poly([m([], _, [v(N, V)]) | Ps])) :-
 	N\=1,
 	write(*),
 	write(V^N),
-	pprint_polynomial(poly(Ps)).
+	pprint_poly(poly(Ps)).
 
 pprint_poly(poly([m([], _, [v(1, V) | Vs]) | Ps])) :-
 	Vs\=[],

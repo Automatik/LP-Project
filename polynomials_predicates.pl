@@ -769,6 +769,9 @@ pprint_polynomial(Poly) :-
 	parse_polynomial(Poly,Polyp),
 	is_polynomial(Polyp),
 	pprint_poly(Polyp).
+pprint_polynomial(Poly) :-
+	as_polynomial(Poly, P),
+	pprint_polynomial(P).
 pprint_poly(poly([m(C, _, [v(N, V) | Vs]) | Ps])) :-
 	C\=[],
 	C\=0,
@@ -850,7 +853,7 @@ pprint_poly(poly([m([], _, [v(1, V)]) | Ps])) :-
 	pprint_poly(poly(Ps)).
 
 pprint_poly(poly([m([], _, []) | Ps])) :-
-		pprint_poly(poly(Ps)).
+	pprint_poly(poly(Ps)).
 
 pprint_poly(poly([])).
 
