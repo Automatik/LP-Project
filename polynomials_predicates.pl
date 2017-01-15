@@ -822,7 +822,7 @@ pprint_poly(poly([m(C, _, [v(1, V) | Vs]) | Ps])) :-
 
 pprint_poly(poly([m(C, _, [_ | _]) | Ps])) :-
 	C=0,
-	pprint_polynomial(poly(Ps)).
+	pprint_poly(poly(Ps)).
 
 
 pprint_poly(poly([m([], _, [v(N, V) | Vs]) | Ps])) :-
@@ -836,7 +836,7 @@ pprint_poly(poly([m([], _, [v(N, V)]) | Ps])) :-
 	N\=1,
 	write(*),
 	write(V^N),
-	pprint_polynomial(poly(Ps)).
+	pprint_poly(poly(Ps)).
 
 pprint_poly(poly([m([], _, [v(1, V) | Vs]) | Ps])) :-
 	Vs\=[],
